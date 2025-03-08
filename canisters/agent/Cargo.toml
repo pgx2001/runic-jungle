@@ -1,0 +1,12 @@
+[package]
+name = "agent"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+candid = "0.10.13"
+ic-cdk = "0.17.1"
+ic-ledger-types = "0.14.0"
+ic-stable-structures = "0.6.7"
+icrc-ledger-types = "0.1.8"
+serde = { version = "1.0.218", features = ["derive"] }
