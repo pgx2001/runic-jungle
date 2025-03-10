@@ -1,0 +1,35 @@
+{
+  "canisters": {
+    "llm": {
+      "type": "custom",
+      "wasm": "https://github.com/dfinity/llm/releases/latest/download/llm-canister-ollama.wasm",
+      "candid": "https://github.com/dfinity/llm/releases/latest/download/llm-canister-ollama.did",
+      "specified_id": "w36hm-eqaaa-aaaal-qr76a-cai",
+      "remote": {
+        "id": {
+          "ic": "w36hm-eqaaa-aaaal-qr76a-cai"
+        }
+      }
+    },
+    "test-agent": {
+      "type": "rust",
+      "package": "agent",
+      "candid": "canisters/agent/agent.did",
+      "gzip": true
+    },
+    "factory": {
+      "type": "rust",
+      "package": "factory",
+      "candid": "canisters/factory/factory.did",
+      "gzip": true
+    },
+    "market-maker": {
+      "type": "rust",
+      "package": "dex",
+      "candid": "canisters/dex/dex.did",
+      "gzip": true
+    }
+  },
+  "output_env_file": ".env",
+  "version": 1
+}

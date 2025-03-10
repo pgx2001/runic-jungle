@@ -3,10 +3,31 @@ name = "agent"
 version = "0.1.0"
 edition = "2024"
 
+[lib]
+crate-type = ["cdylib"]
+
 [dependencies]
-candid = "0.10.13"
-ic-cdk = "0.17.1"
-ic-ledger-types = "0.14.0"
-ic-stable-structures = "0.6.7"
-icrc-ledger-types = "0.1.8"
-serde = { version = "1.0.218", features = ["derive"] }
+ic-cdk.workspace = true
+candid.workspace = true
+ic-stable-structures.workspace = true
+ic-llm.workspace = true
+icrc-ledger-types.workspace = true
+ic-ledger-types.workspace = true
+
+ic-secp256k1.workspace = true
+ic-management-canister-types.workspace = true
+
+serde.workspace = true
+serde_json.workspace = true
+serde_bytes.workspace = true
+
+bitcoin.workspace = true
+ordinals.workspace = true
+
+tiny-keccak.workspace = true
+getrandom.workspace = true
+sha2.workspace = true
+ripemd.workspace = true
+bs58.workspace = true
+hex.workspace = true
+num-integer.workspace = true
