@@ -22,12 +22,6 @@
       "package": "factory",
       "candid": "canisters/factory/factory.did",
       "gzip": true
-    },
-    "market-maker": {
-      "type": "rust",
-      "package": "dex",
-      "candid": "canisters/dex/dex.did",
-      "gzip": true
     }
   },
   "output_env_file": ".env",

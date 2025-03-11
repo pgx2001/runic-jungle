@@ -1,22 +1,24 @@
 use config::{Config, StableConfig, init_stable_config};
 use ic_stable_structures::{
-    memory_manager::{MemoryId, MemoryManager, VirtualMemory}, DefaultMemoryImpl
+    DefaultMemoryImpl,
+    memory_manager::{MemoryId, MemoryManager, VirtualMemory},
 };
 use std::cell::RefCell;
 
-mod prize_pool;
+mod chats;
 mod config;
 mod market_maker;
+mod prize_pool;
 
 type Memory = VirtualMemory<DefaultMemoryImpl>;
 
-pub enum MemoryIds{
+pub enum MemoryIds {
     Config = 0,
     PrizePool = 1,
     MarketMaker = 2,
 }
 
-impl From<MemoryIds> for MemoryId{
+impl From<MemoryIds> for MemoryId {
     fn from(value: MemoryIds) -> Self {
         let id = value as u8;
         MemoryId::new(id)

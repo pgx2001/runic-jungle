@@ -1,4 +1,4 @@
-use candid::CandidType;
+use candid::{CandidType, Principal};
 use ic_cdk::{init, query, update};
 use llm::ICLLM;
 use serde::Deserialize;
@@ -16,6 +16,7 @@ use ic_cdk::api::management_canister::ecdsa::EcdsaPublicKeyResponse as EcdsaPubl
 
 #[derive(CandidType, Deserialize)]
 pub struct InitArgs {
+    pub commission: u16,
     pub commission_receiver: String,
     pub runeid: String,
     pub logo: String,
@@ -23,9 +24,10 @@ pub struct InitArgs {
 }
 
 /// constructor for agent
-#[init]
+// #[init]
 pub fn init(
     InitArgs {
+        commission,
         commission_receiver,
         runeid,
         logo,
@@ -33,7 +35,15 @@ pub fn init(
     }: InitArgs,
 ) {
     let factory = ic_cdk::caller();
-    write_config(|config| {})
+    write_config(|config| {
+        let mut temp = config.get().clone();
+        temp.commission = commission;
+        temp.factory = factory;
+        temp.commission_receiver = commission_receiver;
+        temp.logo = logo;
+        temp.project_description = project_description;
+        temp.runeid = runeid;
+    })
 }
 
 /*
@@ -48,17 +58,23 @@ pub fn generate_wallet() -> String {
     todo!()
 }
 
+pub fn get_balances() {}
+
 pub fn market_cap() {}
 
 /*
 * amount: no of tokens to be bought
 */
-pub fn buy(amount: u128) {}
+pub fn buy(amount: u128) {
+    let caller = ic_cdk::caller();
+}
 
 /*
 * amount: no of tokens to be sold
 */
-pub fn sell(amount: u128) {}
+pub fn sell(amount: u128) {
+    let caller = ic_cdk::caller();
+}
 
 #[derive(CandidType)]
 pub struct PrizePool {
@@ -75,14 +91,10 @@ pub async fn try_withdraw(msg: String) {
     let caller = ic_cdk::caller();
 }
 
-#[derive(CandidType, Deserialize)]
-pub enum ChatType {
-    Anonymous,
-    LoggedIn,
-}
-
 #[update]
 pub async fn chat(message: String) -> String {
+    let caller = ic_cdk::caller();
+    let chat_to_be_stored = caller != Principal::anonymous();
     let mut llm = ICLLM::new(true);
     llm.chat(message).await
 }
