@@ -1,3 +1,102 @@
 nav {
-	border: 2px solid yellow;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  background-color: #1a1a1a;
+  color: #fff;
+  border-bottom: 2px solid #333;
+}
+
+.nav-right {
+  display: flex;
+  align-items: center;
+}
+
+.title {
+  font-size: 2rem;
+}
+
+@keyframes glow {
+  0% {
+    box-shadow: 0 0 5px #8a2be2, 0 0 10px #9370db, 0 0 15px #ba55d3;
+    border-color: #8a2be2;
+  }
+
+  50% {
+    box-shadow: 0 0 10px #9370db, 0 0 20px #ba55d3, 0 0 30px #ff69b4;
+    border-color: #ba55d3;
+  }
+
+  100% {
+    box-shadow: 0 0 5px #8a2be2, 0 0 10px #9370db, 0 0 15px #ba55d3;
+    border-color: #8a2be2;
+  }
+}
+
+.home-btn {
+  display: inline-block;
+  background: linear-gradient(45deg, #8a2be2, #ba55d3, #ff69b4);
+  color: white;
+  padding: 0.6rem 1.2rem;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  text-decoration: none;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  transition: all 0.3s ease-in-out;
+  position: relative;
+  overflow: hidden;
+  animation: glow 1.5s infinite alternate ease-in-out;
+}
+
+/* Hover effect */
+.home-btn:hover {
+  background: linear-gradient(45deg, #ba55d3, #ff69b4, #dda0dd);
+  transform: scale(1.05);
+}
+
+/* Adding a soft glow effect */
+.home-btn::before {
+  content: "";
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: linear-gradient(45deg, #8a2be2, #ba55d3, #ff69b4, #dda0dd);
+  z-index: -1;
+  border-radius: 10px;
+  filter: blur(10px);
+  opacity: 0.8;
+  transition: opacity 0.3s ease-in-out;
+}
+
+.home-btn:hover::before {
+  opacity: 1;
+  filter: blur(15px);
+}
+
+.wallet-btn {
+  background: none;
+  border: 2px solid #fff;
+  color: #fff;
+  padding: 0.5rem 1rem;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: all 0.3s ease-in-out;
+  border-radius: 5px;
+}
+
+.wallet-btn:hover {
+  background: #fff;
+  color: #1a1a1a;
+}
+
+.balance {
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: goldenrod;
+  margin-right: 1rem;
 }

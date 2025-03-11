@@ -1,14 +1,18 @@
 import { useState } from 'react'
 import './App.css'
-import Navbar from "./components/Navbar";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom"
+import Home from './pages/Home'
 
 function App() {
-  const [wallet, setWallet] = useState(null);
+  const [wallet, setWallet] = useState(null)
+  const [agent, setAgent] = useState(null)
 
   return (
-    <>
-      <Navbar title={"Runic-Agent"} wallet={wallet} setWallet={setWallet}/>
-    </>
+    <Router>
+      <Routes>
+        <Route path="/" element={<Home title={"Runic-Agent"} setAgent={setAgent} wallet={wallet} setWallet={setWallet} />} />
+      </Routes>
+    </Router>
   )
 }
 
