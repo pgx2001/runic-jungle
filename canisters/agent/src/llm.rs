@@ -37,16 +37,26 @@ pub struct ICLLM {
 }
 
 impl ICLLM {
-    pub fn new(for_chat: bool) -> Self {
+    pub fn lottery_agent() -> Self {
+        todo!()
+    }
+
+    pub fn agent() -> Self {
         let principal = Principal::from_text(LLM_CANISTER).unwrap();
-        let system_prompt = if for_chat {
+        let system_prompt = format!(
+            "{}{TOOLS}",
             read_config(|config| config.get_system_prompt())
-        } else {
-            format!(
-                "{}{TOOLS}",
-                read_config(|config| config.get_system_prompt())
-            )
-        };
+        );
+        Self {
+            principal,
+            system_prompt,
+            past_messages: vec![],
+        }
+    }
+
+    pub fn chatbot() -> Self {
+        let principal = Principal::from_text(LLM_CANISTER).unwrap();
+        let system_prompt = read_config(|config| config.get_system_prompt());
         Self {
             principal,
             system_prompt,

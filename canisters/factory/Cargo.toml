@@ -9,3 +9,4 @@ crate-type = ["cdylib"]
 [dependencies]
 ic-cdk.workspace = true
 candid.workspace = true
+serde.workspace = true

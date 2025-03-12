@@ -5,7 +5,6 @@ use ic_stable_structures::{
 };
 use std::cell::RefCell;
 
-mod chats;
 mod config;
 mod market_maker;
 mod prize_pool;
@@ -52,4 +51,11 @@ where
     F: FnOnce(&StableConfig) -> R,
 {
     CONFIG.with_borrow_mut(|config| f(config))
+}
+
+pub fn read_prize_pool<F, R>(f: F) -> R
+where
+    F: FnOnce(&prize_pool::PrizePool) -> R,
+{
+    PRIZE_POOL.with_borrow(|prize_pool| f(prize_pool))
 }

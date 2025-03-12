@@ -18,7 +18,6 @@ use ic_cdk::api::management_canister::ecdsa::EcdsaPublicKeyResponse as EcdsaPubl
 pub struct InitArgs {
     pub commission: u16,
     pub commission_receiver: String,
-    pub runeid: String,
     pub logo: String,
     pub project_description: String,
 }
@@ -29,7 +28,6 @@ pub fn init(
     InitArgs {
         commission,
         commission_receiver,
-        runeid,
         logo,
         project_description,
     }: InitArgs,
@@ -42,7 +40,6 @@ pub fn init(
         temp.commission_receiver = commission_receiver;
         temp.logo = logo;
         temp.project_description = project_description;
-        temp.runeid = runeid;
     })
 }
 
@@ -51,6 +48,12 @@ pub fn init(
 pub fn pre_upgrade() {}
 pub fn post_upgrade() {}
 */
+
+pub fn get_agent_bitcoin_address() -> String {
+    todo!()
+}
+
+pub async fn initialize_rune_creation_process() {}
 
 #[query]
 pub fn generate_wallet() -> String {
@@ -82,20 +85,23 @@ pub struct PrizePool {
     pub rune: (String, u128),
 }
 
+#[query]
 pub fn current_prize_pool() -> PrizePool {
-    todo!()
+    // TODO: fetch runeid from config
+    read_prize_pool(|pool| pool.query_prize_pool(String::from("")))
 }
 
 #[update(guard = "trap_if_anonymous")]
-pub async fn try_withdraw(msg: String) {
+pub async fn try_withdraw(msg: String) -> String {
     let caller = ic_cdk::caller();
+    // let mut llm = ICLLM::new(false);
+    todo!()
 }
 
 #[update]
 pub async fn chat(message: String) -> String {
     let caller = ic_cdk::caller();
-    let chat_to_be_stored = caller != Principal::anonymous();
-    let mut llm = ICLLM::new(true);
+    let mut llm = ICLLM::chatbot();
     llm.chat(message).await
 }
 

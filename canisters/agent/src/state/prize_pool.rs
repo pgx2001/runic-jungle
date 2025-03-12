@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use candid::{CandidType, Decode, Encode};
+use candid::{CandidType, Decode, Encode, Principal};
 use ic_stable_structures::{Storable, storable::Bound};
 use serde::Deserialize;
 
@@ -11,6 +11,7 @@ pub struct PrizePool {
     pub magical_words: String,
     pub bitcoin: u64,
     pub rune: u128,
+    pub winner: Option<(Principal, u64, u128)>,
 }
 
 impl Storable for PrizePool {
