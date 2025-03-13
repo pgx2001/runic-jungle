@@ -1,5 +1,5 @@
 [package]
-name = "agent"
+name = "backend"
 version = "0.1.0"
 edition = "2024"
 
@@ -9,17 +9,18 @@ crate-type = ["cdylib"]
 [dependencies]
 ic-cdk.workspace = true
 candid.workspace = true
-ic-stable-structures.workspace = true
 ic-llm.workspace = true
-icrc-ledger-types.workspace = true
+ic-stable-structures.workspace = true
 ic-ledger-types.workspace = true
+icrc-ledger-types.workspace = true
+ic-management-canister-types.workspace = true
 
 ic-secp256k1.workspace = true
-ic-management-canister-types.workspace = true
 
 serde.workspace = true
 serde_json.workspace = true
 serde_bytes.workspace = true
+serde_with.workspace = true
 
 bitcoin.workspace = true
 ordinals.workspace = true

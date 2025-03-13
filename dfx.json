@@ -23,22 +23,10 @@
         }
       }
     },
-    "test-agent": {
+    "backend": {
       "type": "rust",
-      "package": "agent",
-      "candid": "canisters/agent/agent.did",
-      "gzip": true
-    },
-    "factory": {
-      "type": "rust",
-      "package": "factory",
-      "candid": "canisters/factory/factory.did",
-      "gzip": true
-    },
-    "market-maker": {
-      "type": "rust",
-      "package": "dex",
-      "candid": "canisters/dex/dex.did",
+      "package": "backend",
+      "candid": "canisters/backend/backend.did",
       "gzip": true
     }
   },

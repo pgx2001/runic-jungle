@@ -1,7 +1,0 @@
-type InitArgs = record {
-  commission_receiver : text;
-  project_description : text;
-  runeid : text;
-  logo : text;
-};
-service : (InitArgs) -> { chat : (text) -> (text); try_withdraw : (text) -> () }
