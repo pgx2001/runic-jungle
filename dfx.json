@@ -11,16 +11,10 @@
         }
       }
     },
-    "test-agent": {
+    "backend": {
       "type": "rust",
-      "package": "agent",
-      "candid": "canisters/agent/agent.did",
-      "gzip": true
-    },
-    "factory": {
-      "type": "rust",
-      "package": "factory",
-      "candid": "canisters/factory/factory.did",
+      "package": "backend",
+      "candid": "canisters/backend/backend.did",
       "gzip": true
     }
   },

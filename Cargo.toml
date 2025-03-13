@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = []
+members = ["canisters/backend"]
 
 [workspace.dependencies]
 ic-cdk = "0.17.1"
