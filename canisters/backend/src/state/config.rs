@@ -9,7 +9,7 @@ use super::{CanisterMemory, CanisterMemoryIds, read_memory_manager};
 pub struct Config {
     pub auth: Option<Principal>,
     pub commission_receiver: Option<String>,
-    pub creation_fee: u16, // defaults to 20_000 satoshis
+    pub creation_fee: u64, // defaults to 20_000 satoshis
     pub commission: u16,   // defaults to 2%
     pub ecdsa_public_key: Option<EcdsaPublicKey>,
     pub keyname: String,
