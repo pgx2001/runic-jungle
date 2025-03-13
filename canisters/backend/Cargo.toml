@@ -10,6 +10,7 @@ crate-type = ["cdylib"]
 ic-cdk.workspace = true
 candid.workspace = true
 ic-llm.workspace = true
+ic-cdk-timers.workspace = true
 ic-stable-structures.workspace = true
 ic-ledger-types.workspace = true
 icrc-ledger-types.workspace = true
