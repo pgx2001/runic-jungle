@@ -12,6 +12,7 @@ export default function Home({
     <main>
       <p>Welcome to Bitcoin Agent Jungle Powered by Internet Computer</p>
       <CreateAgent wallet={wallet} />
+      /* List of created agents */
     </main>
   </>
 }
