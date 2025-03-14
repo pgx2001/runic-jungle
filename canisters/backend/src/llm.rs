@@ -1,5 +1,7 @@
 use candid::Principal;
 
+pub struct Content {}
+
 pub struct Llm {
     pub principal: Principal,
 }

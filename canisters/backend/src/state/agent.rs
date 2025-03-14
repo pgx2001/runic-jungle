@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use candid::{CandidType, Decode, Encode, Principal};
 use ic_stable_structures::{StableBTreeMap, Storable, storable::Bound};
@@ -33,6 +33,9 @@ pub struct AgentDetail {
     // balances
     pub bitcoin: u128,
     pub rune: u128,
+
+    // user balances
+    pub balances: HashMap<String, (u64, u128)>,
 }
 
 impl Storable for AgentDetail {
@@ -296,14 +299,7 @@ impl AgentDetail {
                 .ok_or("Fee subtraction underflow")?;
             let amount_out = amount_minus_fee
                 .checked_mul(reserve_out)
-                .and_then(|result| {
-                    result.checked_div(
-                        reserve_in
-                            .checked_add(amount_minus_fee)
-                            .ok_or("Overflow")
-                            .ok()?,
-                    )
-                })
+                .and_then(|result| result.checked_div(reserve_in.checked_add(amount_minus_fee)?))
                 .ok_or("Calculation error")?;
 
             Ok((amount_out, fee))
@@ -311,9 +307,7 @@ impl AgentDetail {
             // Calculate amount out first, then fee
             let amount_out = amount_in
                 .checked_mul(reserve_out)
-                .and_then(|result| {
-                    result.checked_div(reserve_in.checked_add(amount_in).ok_or("Overflow").ok()?)
-                })
+                .and_then(|result| result.checked_div(reserve_in.checked_add(amount_in)?))
                 .ok_or("Calculation error")?;
 
             let (treasury_fee, dex_fee) = self.calculate_fee(amount_out);
@@ -343,14 +337,7 @@ impl AgentDetail {
             let total_out = amount_out.checked_add(fee).ok_or("Fee addition overflow")?;
             let amount_in = total_out
                 .checked_mul(reserve_in)
-                .and_then(|result| {
-                    result.checked_div(
-                        reserve_out
-                            .checked_sub(total_out)
-                            .ok_or("Output exceeds reserves")
-                            .ok()?,
-                    )
-                })
+                .and_then(|result| result.checked_div(reserve_out.checked_sub(total_out)?))
                 .ok_or("Calculation error")?;
 
             Ok((amount_in, fee))
@@ -358,14 +345,7 @@ impl AgentDetail {
             // Calculate amount in first, then fee
             let amount_in = amount_out
                 .checked_mul(reserve_in)
-                .and_then(|result| {
-                    result.checked_div(
-                        reserve_out
-                            .checked_sub(amount_out)
-                            .ok_or("Output exceeds reserves")
-                            .ok()?,
-                    )
-                })
+                .and_then(|result| result.checked_div(reserve_out.checked_sub(amount_out)?))
                 .ok_or("Calculation error")?;
 
             let (treasury_fee, dex_fee) = self.calculate_fee(amount_in);
@@ -377,12 +357,10 @@ impl AgentDetail {
         }
     }
 
-    // Simplified buy method that matches your original struct declaration
     pub fn buy(&mut self, collateral_in: u128, min_tokens_out: u128) -> Result<u128, &'static str> {
         self.buy_exact_in(collateral_in, min_tokens_out)
     }
 
-    // Simplified sell method that matches your original struct declaration
     pub fn sell(
         &mut self,
         token_amount: u128,
@@ -425,4 +403,20 @@ impl AgentState {
         let id = self.get_agent_id();
         todo!()
     }
+
+    pub fn get_agents(&self) -> HashSet<u128, ()> {
+        todo!()
+    }
+
+    pub fn get_agent_of(&self) {}
+
+    pub fn get_amount_out_and_fee(&self) {}
+
+    pub fn buy(&mut self) {}
+
+    pub fn sell(&mut self) {}
+
+    pub fn get_lucky_draw_detail(&self) {}
+
+    pub fn bait_the_bot(&mut self) {}
 }

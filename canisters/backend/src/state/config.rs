@@ -1,5 +1,5 @@
 use crate::EcdsaPublicKey;
-use candid::{CandidType, Principal};
+use candid::{CandidType, Decode, Encode, Principal};
 use ic_stable_structures::{StableCell, Storable, storable::Bound};
 use serde::Deserialize;
 
@@ -30,11 +30,11 @@ impl Default for Config {
 
 impl Storable for Config {
     fn to_bytes(&self) -> std::borrow::Cow<[u8]> {
-        todo!()
+        std::borrow::Cow::Owned(Encode!(self).expect("should encode"))
     }
 
     fn from_bytes(bytes: std::borrow::Cow<[u8]>) -> Self {
-        todo!()
+        Decode!(bytes.as_ref(), Self).expect("should decode")
     }
 
     const BOUND: Bound = Bound::Unbounded;
