@@ -3,16 +3,17 @@ import Navbar from "../components/Navbar";
 
 export default function Home({
   title,
+  agent,
   setAgent,
   wallet,
-  setWallet
+  setWallet,
+  setWarningMessage
 }) {
   return <>
-    <Navbar title={title} setAgent={setAgent} wallet={wallet} setWallet={setWallet} />
+    <Navbar title={title} agent={agent} setAgent={setAgent} wallet={wallet} setWallet={setWallet} setWarningMessage={setWarningMessage} />
     <main>
       <p>Welcome to Bitcoin Agent Jungle Powered by Internet Computer</p>
       <CreateAgent wallet={wallet} />
-      /* List of created agents */
     </main>
   </>
 }

@@ -1,5 +1,3 @@
-<<<<<<< HEAD
-=======
 type AgentBy = variant { Id : nat; Name : text };
 type AgentDetails = record {
   market_cap : nat64;
@@ -25,7 +23,6 @@ type ChatArgs = record {
   session_id : opt nat;
   message : text;
 };
->>>>>>> canisters
 type CreateAgentArgs = record {
   ticker : opt nat32;
   twitter : opt text;
@@ -36,9 +33,6 @@ type CreateAgentArgs = record {
   discord : opt text;
   openchat : opt text;
 };
-<<<<<<< HEAD
-service : { create_agent : (CreateAgentArgs) -> () }
-=======
 type HttpRequest = record {
   url : text;
   method : text;
@@ -81,4 +75,3 @@ service : {
   sell : (SellArgs) -> ();
   withdraw : (text, WithdrawalType) -> (nat);
 }
->>>>>>> canisters
