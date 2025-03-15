@@ -1,0 +1,11 @@
+type CreateAgentArgs = record {
+  ticker : opt nat32;
+  twitter : opt text;
+  logo : opt text;
+  name : text;
+  description : text;
+  website : opt text;
+  discord : opt text;
+  openchat : opt text;
+};
+service : { create_agent : (CreateAgentArgs) -> () }

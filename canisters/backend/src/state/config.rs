@@ -1,12 +1,17 @@
 use crate::EcdsaPublicKey;
-use candid::{CandidType, Principal};
+use candid::{CandidType, Decode, Encode, Principal};
+use ic_cdk::api::management_canister::{
+    bitcoin::BitcoinNetwork,
+    ecdsa::{EcdsaCurve, EcdsaKeyId},
+};
 use ic_stable_structures::{StableCell, Storable, storable::Bound};
 use serde::Deserialize;
 
 use super::{CanisterMemory, CanisterMemoryIds, read_memory_manager};
 
-#[derive(CandidType, Deserialize)]
+#[derive(CandidType, Deserialize, Clone)]
 pub struct Config {
+    pub bitcoin_network: BitcoinNetwork,
     pub auth: Option<Principal>,
     pub commission_receiver: Option<String>,
     pub creation_fee: u64, // defaults to 20_000 satoshis
@@ -18,6 +23,7 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Self {
         Self {
+            bitcoin_network: BitcoinNetwork::Regtest,
             auth: None,
             commission_receiver: None,
             creation_fee: 20_000,
@@ -30,11 +36,11 @@ impl Default for Config {
 
 impl Storable for Config {
     fn to_bytes(&self) -> std::borrow::Cow<[u8]> {
-        todo!()
+        std::borrow::Cow::Owned(Encode!(self).expect("should encode"))
     }
 
     fn from_bytes(bytes: std::borrow::Cow<[u8]>) -> Self {
-        todo!()
+        Decode!(bytes.as_ref(), Self).expect("should decode")
     }
 
     const BOUND: Bound = Bound::Unbounded;
@@ -49,4 +55,37 @@ pub fn initialize_config() -> StableConfig {
     })
 }
 
-impl Config {}
+impl Config {
+    pub fn bitcoin_network(&self) -> BitcoinNetwork {
+        self.bitcoin_network
+    }
+
+    pub fn ecdsa_public_key(&self) -> EcdsaPublicKey {
+        if let Some(ref ecdsa_key) = self.ecdsa_public_key {
+            ecdsa_key.clone()
+        } else {
+            ic_cdk::trap("canister's config uninitialized")
+        }
+    }
+
+    pub fn commission_receiver(&self) -> String {
+        self.commission_receiver.clone().unwrap_or_else(|| {
+            crate::bitcoin::account_to_p2pkh_address(&icrc_ledger_types::icrc1::account::Account {
+                owner: ic_cdk::id(),
+                subaccount: None,
+            })
+        })
+    }
+
+    pub fn keyname(&self) -> String {
+        self.keyname.clone()
+    }
+
+    pub fn ecdsakeyid(&self) -> EcdsaKeyId {
+        let name = self.keyname();
+        EcdsaKeyId {
+            name,
+            curve: EcdsaCurve::Secp256k1,
+        }
+    }
+}
