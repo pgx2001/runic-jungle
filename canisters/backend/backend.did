@@ -1,0 +1,77 @@
+type AgentBy = variant { Id : nat; Name : text };
+type AgentDetails = record {
+  market_cap : nat64;
+  ticker : nat32;
+  current_prize_pool : record { nat64; nat };
+  twitter : opt text;
+  runeid : text;
+  logo : opt text;
+  txns : record { opt text; opt text };
+  description : text;
+  created_at : nat64;
+  created_by : text;
+  website : opt text;
+  agent_name : text;
+  discord : opt text;
+  holders : nat32;
+  total_supply : nat;
+  openchat : opt text;
+};
+type BuyArgs = record { id : AgentBy; min_amount_out : nat };
+type ChatArgs = record {
+  agent : AgentBy;
+  session_id : opt nat;
+  message : text;
+};
+type CreateAgentArgs = record {
+  ticker : opt nat32;
+  twitter : opt text;
+  logo : opt text;
+  name : text;
+  description : text;
+  website : opt text;
+  discord : opt text;
+  openchat : opt text;
+};
+type HttpRequest = record {
+  url : text;
+  method : text;
+  body : blob;
+  headers : vec record { text; text };
+};
+type HttpResponse = record {
+  body : blob;
+  headers : vec record { text; text };
+  streaming_strategy : opt StreamingStrategy;
+  status_code : nat16;
+};
+type LuckyDraw = record { id : AgentBy; message : text };
+type SellArgs = record { id : AgentBy; min_amount_out : nat64 };
+type StreamingCallbackToken = record {
+  chunk_index : nat32;
+  asset_id : nat;
+  content_encoding : text;
+  chunk_size : nat32;
+};
+type StreamingStrategy = variant {
+  Callback : record {
+    token : StreamingCallbackToken;
+    callback : func () -> () query;
+  };
+};
+type WithdrawalType = variant {
+  Rune : record { runeid : AgentBy; amount : nat };
+  Bitcoin : record { amount : nat64 };
+};
+service : {
+  buy : (BuyArgs) -> ();
+  chat : (ChatArgs) -> ();
+  create_agent : (CreateAgentArgs) -> (nat);
+  get_agent_of : (AgentBy) -> (opt AgentDetails) query;
+  get_agents : () -> (vec record { nat; AgentDetails }) query;
+  get_deposit_address : () -> (text) query;
+  http_request : (HttpRequest) -> (HttpResponse) query;
+  lucky_draw : (LuckyDraw) -> ();
+  sell : (SellArgs) -> ();
+  withdraw : (text, WithdrawalType) -> (nat);
+}
