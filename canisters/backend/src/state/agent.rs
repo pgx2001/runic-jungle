@@ -4,17 +4,24 @@ use candid::{CandidType, Decode, Encode, Principal};
 use ic_stable_structures::{StableBTreeMap, Storable, storable::Bound};
 use serde::Deserialize;
 
-use super::{CanisterMemory, CanisterMemoryIds, read_memory_manager};
+use super::{CanisterMemory, CanisterMemoryIds, read_config, read_memory_manager};
 
 #[derive(CandidType, Deserialize)]
 pub struct AgentDetail {
     pub agent_id: u128,
     pub created_at: u64,
+    pub created_by: Principal,
     pub allocated_raw_subaccount: [u8; 32],
     pub txns: (Option<String>, Option<String>),
     pub runeid: Option<String>,
     pub name: String,
     pub ticker: u32,
+    pub description: String,
+    pub logo: Option<String>,
+    pub website: Option<String>,
+    pub twitter: Option<String>,
+    pub openchat: Option<String>,
+    pub discord: Option<String>,
 
     // bait the bot
     pub past_winners: HashSet<(u64, u64, u128, Principal, String)>, // data -> (time, amount_in_bitcoin, amount_in_rune, winner, secret)
@@ -51,31 +58,69 @@ impl Storable for AgentDetail {
 }
 
 impl AgentDetail {
-    // Calculate the market cap
-    pub fn market_cap(&self) -> u128 {
-        let mc = self
-            .virtual_collateral_reserves
-            .checked_mul(10u128.pow(18))
-            .and_then(|result| result.checked_mul(self.total_supply))
-            .and_then(|result| result.checked_div(self.virtual_token_reserves))
-            .unwrap_or(0);
-
-        mc.checked_div(10u128.pow(18)).unwrap_or(0)
+    pub fn logo_url(&self) -> Option<String> {
+        if self.logo.is_none() {
+            return None;
+        }
+        let localhost = read_config(|config| {
+            config.bitcoin_network()
+                == ic_cdk::api::management_canister::bitcoin::BitcoinNetwork::Regtest
+        });
+        todo!()
     }
 
-    // Calculate fees
+    pub fn get_bitcoin_address(&self) -> String {
+        crate::bitcoin::account_to_p2pkh_address(&icrc_ledger_types::icrc1::account::Account {
+            owner: ic_cdk::id(),
+            subaccount: Some(self.allocated_raw_subaccount),
+        })
+    }
+
+    pub fn market_cap(&self) -> u128 {
+        self.virtual_collateral_reserves
+            .checked_mul(self.total_supply)
+            .and_then(|result| result.checked_div(self.virtual_token_reserves))
+            .unwrap_or(0)
+    }
+
+    pub fn agent_query(&self) -> crate::AgentDetails {
+        crate::AgentDetails {
+            created_at: self.created_at,
+            created_by: self.created_by.to_text(),
+            agent_name: self.name.clone(),
+            logo: self.logo_url(),
+            runeid: self.runeid.clone().unwrap_or(String::new()),
+            ticker: self.ticker,
+            description: self.description.clone(),
+            website: self.website.clone(),
+            twitter: self.twitter.clone(),
+            openchat: self.openchat.clone(),
+            discord: self.discord.clone(),
+            total_supply: self.total_supply,
+            holders: self.balances.len() as u32,
+            market_cap: self.market_cap() as u64,
+            current_prize_pool: self.current_prize_pool,
+            txns: self.txns.clone(),
+        }
+    }
+
+    /// Calculate the fees based on an input amount.
+    /// Returns a tuple: (treasury_fee minus DEX fee, dex_fee).
     fn calculate_fee(&self, amount: u128) -> (u128, u128) {
         let treasury_fee = (amount * self.fee_bps as u128) / self.max_bps as u128;
         let dex_fee = (treasury_fee * self.dex_fee_bps as u128) / self.max_bps as u128;
         (treasury_fee - dex_fee, dex_fee)
     }
 
-    // Buy tokens with exact collateral in (BTC -> RUNE)
+    /// Buy tokens with exact collateral in (BTC -> RUNE)
     pub fn buy_exact_in(
         &mut self,
         collateral_in: u128,
         min_tokens_out: u128,
     ) -> Result<u128, &'static str> {
+        // Get commission receiver address
+        let commission_receiver = read_config(|config| config.commission_receiver());
+
         // Calculate fees
         let (treasury_fee, dex_fee) = self.calculate_fee(collateral_in);
         let collateral_to_spend = collateral_in
@@ -83,6 +128,16 @@ impl AgentDetail {
             .ok_or("Fee subtraction underflow")?
             .checked_sub(dex_fee)
             .ok_or("Fee subtraction underflow")?;
+
+        // Record commission fees in balances (fees are in BTC, so update the bitcoin balance in the tuple)
+        let entry = self
+            .balances
+            .entry(commission_receiver.clone())
+            .or_insert((0, 0));
+        entry.0 = entry
+            .0
+            .checked_add((treasury_fee + dex_fee) as u64)
+            .ok_or("Commission transfer overflow")?;
 
         // Calculate tokens to receive
         let tokens_out = (collateral_to_spend * self.virtual_token_reserves)
@@ -121,22 +176,24 @@ impl AgentDetail {
         Ok(tokens_out)
     }
 
-    // Buy exact tokens out (BTC -> RUNE)
+    /// Buy exact tokens out (BTC -> RUNE)
     pub fn buy_exact_out(
         &mut self,
         token_amount: u128,
         max_collateral: u128,
     ) -> Result<u128, &'static str> {
-        // Calculate collateral needed
-        let collateral_to_spend = (token_amount
+        let commission_receiver = read_config(|config| config.commission_receiver());
+
+        // Calculate collateral needed for token_amount
+        let collateral_to_spend = token_amount
             .checked_mul(self.virtual_collateral_reserves)
-            .ok_or("Calculation overflow")?)
-        .checked_div(
-            self.virtual_token_reserves
-                .checked_sub(token_amount)
-                .ok_or("Token amount exceeds reserves")?,
-        )
-        .ok_or("Division by zero")?;
+            .ok_or("Calculation overflow")?
+            .checked_div(
+                self.virtual_token_reserves
+                    .checked_sub(token_amount)
+                    .ok_or("Token amount exceeds reserves")?,
+            )
+            .ok_or("Division by zero")?;
 
         // Calculate fees
         let (treasury_fee, dex_fee) = self.calculate_fee(collateral_to_spend);
@@ -144,6 +201,16 @@ impl AgentDetail {
             .checked_add(treasury_fee)
             .and_then(|sum| sum.checked_add(dex_fee))
             .ok_or("Fee calculation overflow")?;
+
+        // Record commission fees in balances (update BTC)
+        let entry = self
+            .balances
+            .entry(commission_receiver.clone())
+            .or_insert((0, 0));
+        entry.0 = entry
+            .0
+            .checked_add((treasury_fee + dex_fee) as u64)
+            .ok_or("Commission transfer overflow")?;
 
         // Slippage check
         if collateral_with_fee > max_collateral {
@@ -173,12 +240,14 @@ impl AgentDetail {
         Ok(collateral_with_fee)
     }
 
-    // Sell exact tokens in (RUNE -> BTC)
+    /// Sell exact tokens in (RUNE -> BTC)
     pub fn sell_exact_in(
         &mut self,
         token_amount: u128,
         min_collateral_out: u128,
     ) -> Result<u128, &'static str> {
+        let commission_receiver = read_config(|config| config.commission_receiver());
+
         // Calculate collateral to receive
         let collateral_to_receive = (token_amount
             .checked_mul(self.virtual_collateral_reserves)
@@ -196,6 +265,16 @@ impl AgentDetail {
             .checked_sub(treasury_fee)
             .and_then(|diff| diff.checked_sub(dex_fee))
             .ok_or("Fee subtraction underflow")?;
+
+        // Record commission fees in balances (update BTC)
+        let entry = self
+            .balances
+            .entry(commission_receiver.clone())
+            .or_insert((0, 0));
+        entry.0 = entry
+            .0
+            .checked_add((treasury_fee + dex_fee) as u64)
+            .ok_or("Commission transfer overflow")?;
 
         // Slippage check
         if collateral_minus_fee < min_collateral_out {
@@ -225,12 +304,14 @@ impl AgentDetail {
         Ok(collateral_minus_fee)
     }
 
-    // Sell tokens to receive exact collateral out (RUNE -> BTC)
+    /// Sell tokens to receive exact collateral out (RUNE -> BTC)
     pub fn sell_exact_out(
         &mut self,
         max_token_amount: u128,
         collateral_out: u128,
     ) -> Result<u128, &'static str> {
+        let commission_receiver = read_config(|config| config.commission_receiver());
+
         // Calculate fees
         let (treasury_fee, dex_fee) = self.calculate_fee(collateral_out);
         let total_collateral_needed = collateral_out
@@ -248,6 +329,16 @@ impl AgentDetail {
                 .ok_or("Collateral subtraction underflow")?,
         )
         .ok_or("Division by zero")?;
+
+        // Record commission fees in balances (update BTC)
+        let entry = self
+            .balances
+            .entry(commission_receiver.clone())
+            .or_insert((0, 0));
+        entry.0 = entry
+            .0
+            .checked_add((treasury_fee + dex_fee) as u64)
+            .ok_or("Commission transfer overflow")?;
 
         // Slippage check
         if tokens_needed > max_token_amount {
@@ -275,98 +366,6 @@ impl AgentDetail {
             .ok_or("Rune balance overflow")?;
 
         Ok(tokens_needed)
-    }
-
-    // Utility functions for calculating amounts and fees
-
-    // Get amount out and fee for a given input
-    pub fn get_amount_out_and_fee(
-        &self,
-        amount_in: u128,
-        reserve_in: u128,
-        reserve_out: u128,
-        payment_token_is_in: bool,
-    ) -> Result<(u128, u128), &'static str> {
-        if payment_token_is_in {
-            // Calculate fee first, then amount out
-            let (treasury_fee, dex_fee) = self.calculate_fee(amount_in);
-            let fee = treasury_fee
-                .checked_add(dex_fee)
-                .ok_or("Fee addition overflow")?;
-
-            let amount_minus_fee = amount_in
-                .checked_sub(fee)
-                .ok_or("Fee subtraction underflow")?;
-            let amount_out = amount_minus_fee
-                .checked_mul(reserve_out)
-                .and_then(|result| result.checked_div(reserve_in.checked_add(amount_minus_fee)?))
-                .ok_or("Calculation error")?;
-
-            Ok((amount_out, fee))
-        } else {
-            // Calculate amount out first, then fee
-            let amount_out = amount_in
-                .checked_mul(reserve_out)
-                .and_then(|result| result.checked_div(reserve_in.checked_add(amount_in)?))
-                .ok_or("Calculation error")?;
-
-            let (treasury_fee, dex_fee) = self.calculate_fee(amount_out);
-            let fee = treasury_fee
-                .checked_add(dex_fee)
-                .ok_or("Fee addition overflow")?;
-
-            Ok((amount_out, fee))
-        }
-    }
-
-    // Get amount in and fee for a given output
-    pub fn get_amount_in_and_fee(
-        &self,
-        amount_out: u128,
-        reserve_in: u128,
-        reserve_out: u128,
-        payment_token_is_out: bool,
-    ) -> Result<(u128, u128), &'static str> {
-        if payment_token_is_out {
-            // Calculate fee first, then amount in
-            let (treasury_fee, dex_fee) = self.calculate_fee(amount_out);
-            let fee = treasury_fee
-                .checked_add(dex_fee)
-                .ok_or("Fee addition overflow")?;
-
-            let total_out = amount_out.checked_add(fee).ok_or("Fee addition overflow")?;
-            let amount_in = total_out
-                .checked_mul(reserve_in)
-                .and_then(|result| result.checked_div(reserve_out.checked_sub(total_out)?))
-                .ok_or("Calculation error")?;
-
-            Ok((amount_in, fee))
-        } else {
-            // Calculate amount in first, then fee
-            let amount_in = amount_out
-                .checked_mul(reserve_in)
-                .and_then(|result| result.checked_div(reserve_out.checked_sub(amount_out)?))
-                .ok_or("Calculation error")?;
-
-            let (treasury_fee, dex_fee) = self.calculate_fee(amount_in);
-            let fee = treasury_fee
-                .checked_add(dex_fee)
-                .ok_or("Fee addition overflow")?;
-
-            Ok((amount_in, fee))
-        }
-    }
-
-    pub fn buy(&mut self, collateral_in: u128, min_tokens_out: u128) -> Result<u128, &'static str> {
-        self.buy_exact_in(collateral_in, min_tokens_out)
-    }
-
-    pub fn sell(
-        &mut self,
-        token_amount: u128,
-        min_collateral_out: u128,
-    ) -> Result<u128, &'static str> {
-        self.sell_exact_in(token_amount, min_collateral_out)
     }
 }
 
@@ -399,24 +398,54 @@ impl AgentState {
         id
     }
 
+    pub fn find_agent_id(&self, agent_id: crate::AgentBy) -> Option<u128> {
+        let id = match agent_id {
+            crate::AgentBy::Id(id) => id,
+            crate::AgentBy::Name(name) => match self._associated_set.get(&name) {
+                None => return None,
+                Some(id) => id,
+            },
+        };
+        if self.mapping.get(&id).is_none() {
+            None
+        } else {
+            Some(id)
+        }
+    }
+
     pub fn create_agent(&mut self) -> u128 {
         let id = self.get_agent_id();
         todo!()
     }
 
-    pub fn get_agents(&self) -> HashSet<u128, ()> {
+    pub fn get_agents(&self) -> HashMap<u128, crate::AgentDetails> {
+        let mut len = self.mapping.len() as u128 - 1;
+        let mut map = HashMap::new();
+        loop {
+            let agent_query = self.mapping.get(&len).unwrap().agent_query();
+            map.insert(len, agent_query);
+            len -= 1;
+            if map.len() >= 50 {
+                break;
+            }
+        }
+        map
+    }
+
+    pub fn get_agent_of(&self, id: u128) -> Option<crate::AgentDetails> {
+        self.mapping.get(&id).map(|detail| detail.agent_query())
+    }
+
+    pub fn get_amount_out_and_fee(&self, id: u128) {}
+
+    pub fn buy(&mut self, id: u128, min_tokens_out: u128) -> u128 {
+        let mut agent = self.mapping.get(&id).expect("doesn't exist");
         todo!()
     }
 
-    pub fn get_agent_of(&self) {}
+    pub fn sell(&mut self, id: u128) {}
 
-    pub fn get_amount_out_and_fee(&self) {}
+    pub fn get_lucky_draw_detail(&self, id: u128) {}
 
-    pub fn buy(&mut self) {}
-
-    pub fn sell(&mut self) {}
-
-    pub fn get_lucky_draw_detail(&self) {}
-
-    pub fn bait_the_bot(&mut self) {}
+    pub fn bait_the_bot(&mut self, id: u128) {}
 }
