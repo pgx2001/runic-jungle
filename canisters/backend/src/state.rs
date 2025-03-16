@@ -8,13 +8,19 @@ use ic_stable_structures::{
 
 mod agent;
 mod chat_session;
+mod commission;
 mod config;
 mod ledger_entries;
+pub mod queue;
+pub mod utxo_manager;
 
 use agent::AgentState;
 use chat_session::ChatSession;
+use commission::{Commission, init_commission};
 use config::Config;
 use ledger_entries::{LedgerEntries, init_ledger_entries};
+use queue::ScheduledState;
+use utxo_manager::UtxoManager;
 
 type CanisterMemory = VirtualMemory<DefaultMemoryImpl>;
 
@@ -24,6 +30,10 @@ pub enum CanisterMemoryIds {
     AssociatedAgentSet = 2,
     ChatSession = 3,
     LedgerEntries = 4,
+    Bitcoin = 5,
+    Runic = 6,
+    Queue = 7,
+    Commission = 8,
 }
 
 impl From<CanisterMemoryIds> for MemoryId {
@@ -39,6 +49,9 @@ thread_local! {
     pub static AGENTS: RefCell<AgentState> = RefCell::default();
     pub static CHAT_SESSION: RefCell<ChatSession> = RefCell::default();
     pub static LEDGER_ENTRIES: RefCell<LedgerEntries> = RefCell::new(init_ledger_entries());
+    pub static UTXO_MANAGER: RefCell<UtxoManager> = RefCell::default();
+    pub static SCHEDULED_STATE: RefCell<ScheduledState> = RefCell::default();
+    pub static COMMISSION: RefCell<Commission> = RefCell::new(init_commission());
 }
 
 // helper functions
@@ -104,4 +117,46 @@ where
     F: FnOnce(&mut LedgerEntries) -> R,
 {
     LEDGER_ENTRIES.with_borrow_mut(|entries| f(entries))
+}
+
+pub fn read_utxo_manager<F, R>(f: F) -> R
+where
+    F: FnOnce(&UtxoManager) -> R,
+{
+    UTXO_MANAGER.with_borrow(|manager| f(manager))
+}
+
+pub fn write_utxo_manager<F, R>(f: F) -> R
+where
+    F: FnOnce(&mut UtxoManager) -> R,
+{
+    UTXO_MANAGER.with_borrow_mut(|manager| f(manager))
+}
+
+pub fn read_scheduled_state<F, R>(f: F) -> R
+where
+    F: FnOnce(&ScheduledState) -> R,
+{
+    SCHEDULED_STATE.with_borrow(|state| f(state))
+}
+
+pub fn write_scheduled_state<F, R>(f: F) -> R
+where
+    F: FnOnce(&mut ScheduledState) -> R,
+{
+    SCHEDULED_STATE.with_borrow_mut(|state| f(state))
+}
+
+pub fn read_commission_state<F, R>(f: F) -> R
+where
+    F: FnOnce(&Commission) -> R,
+{
+    COMMISSION.with_borrow(|commission| f(commission))
+}
+
+pub fn write_commission_state<F, R>(f: F) -> R
+where
+    F: FnOnce(&mut Commission) -> R,
+{
+    COMMISSION.with_borrow_mut(|commission| f(commission))
 }

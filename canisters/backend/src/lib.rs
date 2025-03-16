@@ -4,6 +4,7 @@ mod indexer;
 mod llm;
 mod state;
 mod tools;
+mod txn_handler;
 mod utils;
 
 use state::*;
@@ -17,6 +18,7 @@ use ic_cdk::api::management_canister::ecdsa::EcdsaPublicKeyResponse as EcdsaPubl
 use ic_cdk::api::management_canister::ecdsa::{
     EcdsaKeyId, EcdsaPublicKeyArgument, ecdsa_public_key,
 };
+use ic_cdk::api::management_canister::schnorr::SchnorrPublicKeyResponse as SchnorrPublicKey;
 use ic_cdk::{init, query, update};
 use serde::Deserialize;
 

@@ -11,6 +11,13 @@
         }
       }
     },
+    "runes-indexer": {
+      "remote": {
+        "id": {
+          "ic": "f2dwm-caaaa-aaaao-qjxlq-cai"
+        }
+      }
+    },
     "backend": {
       "type": "rust",
       "package": "backend",

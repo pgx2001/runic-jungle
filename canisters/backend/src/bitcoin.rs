@@ -1,10 +1,12 @@
+pub mod runestone;
+pub mod signer;
 pub mod transaction;
 pub mod utils;
 
 // re export
 pub use transaction::transfer;
 
-use bitcoin::{Address, address::NetworkUnchecked};
+use crate::bitcoin_lib::{Address, address::NetworkUnchecked};
 use icrc_ledger_types::icrc1::account::Account;
 
 use bitcoin::Network;

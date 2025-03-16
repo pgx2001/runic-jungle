@@ -1,8 +1,9 @@
-use crate::EcdsaPublicKey;
+use crate::{EcdsaPublicKey, SchnorrPublicKey};
 use candid::{CandidType, Decode, Encode, Principal};
 use ic_cdk::api::management_canister::{
     bitcoin::BitcoinNetwork,
     ecdsa::{EcdsaCurve, EcdsaKeyId},
+    schnorr::{SchnorrAlgorithm, SchnorrKeyId},
 };
 use ic_stable_structures::{StableCell, Storable, storable::Bound};
 use serde::Deserialize;
@@ -13,10 +14,11 @@ use super::{CanisterMemory, CanisterMemoryIds, read_memory_manager};
 pub struct Config {
     pub bitcoin_network: BitcoinNetwork,
     pub auth: Option<Principal>,
-    pub commission_receiver: Option<String>,
+    pub commission_receiver: Principal,
     pub creation_fee: u64, // defaults to 20_000 satoshis
     pub commission: u16,   // defaults to 2%
     pub ecdsa_public_key: Option<EcdsaPublicKey>,
+    pub schnorr_public_key: Option<SchnorrPublicKey>,
     pub keyname: String,
 }
 
@@ -25,10 +27,11 @@ impl Default for Config {
         Self {
             bitcoin_network: BitcoinNetwork::Regtest,
             auth: None,
-            commission_receiver: None,
+            commission_receiver: ic_cdk::id(),
             creation_fee: 20_000,
             commission: 200,
             ecdsa_public_key: None,
+            schnorr_public_key: None,
             keyname: String::from("dfx_test_key"),
         }
     }
@@ -68,13 +71,8 @@ impl Config {
         }
     }
 
-    pub fn commission_receiver(&self) -> String {
-        self.commission_receiver.clone().unwrap_or_else(|| {
-            crate::bitcoin::account_to_p2pkh_address(&icrc_ledger_types::icrc1::account::Account {
-                owner: ic_cdk::id(),
-                subaccount: None,
-            })
-        })
+    pub fn commission_receiver(&self) -> Principal {
+        self.commission_receiver
     }
 
     pub fn keyname(&self) -> String {
@@ -86,6 +84,29 @@ impl Config {
         EcdsaKeyId {
             name,
             curve: EcdsaCurve::Secp256k1,
+        }
+    }
+
+    pub fn schnorr_public_key(&self) -> SchnorrPublicKey {
+        if let Some(ref public_key) = self.schnorr_public_key {
+            public_key.clone()
+        } else {
+            ic_cdk::trap("canister's config uninitialized")
+        }
+    }
+
+    pub fn schnorrkeyid(&self) -> SchnorrKeyId {
+        let name = self.keyname();
+        SchnorrKeyId {
+            algorithm: SchnorrAlgorithm::Bip340secp256k1,
+            name,
+        }
+    }
+
+    pub fn get_timer_for_txn_submission(&self) -> u64 {
+        match self.bitcoin_network() {
+            BitcoinNetwork::Regtest => 60,
+            _ => 60 * 60,
         }
     }
 }
