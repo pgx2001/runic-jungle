@@ -1,3 +1,7 @@
+use crate::{
+    bitcoin::account_to_p2pkh_address,
+    state::{read_chat_session, write_chat_session},
+};
 use candid::{CandidType, Principal};
 use serde::{Deserialize, Serialize};
 
@@ -32,7 +36,7 @@ pub struct Llm {
 }
 
 impl Llm {
-    pub fn new() -> Self {
+    pub fn new(session_id: u128, user: &Principal) -> Self {
         todo!()
     }
 

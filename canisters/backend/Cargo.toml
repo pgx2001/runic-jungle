@@ -33,3 +33,7 @@ ripemd.workspace = true
 bs58.workspace = true
 hex.workspace = true
 num-integer.workspace = true
+runes-indexer-interface.workspace = true
+slotmap.workspace = true
+
+ciborium.workspace = true

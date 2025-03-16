@@ -4,7 +4,9 @@ use candid::{CandidType, Decode, Encode, Principal};
 use ic_stable_structures::{StableBTreeMap, Storable, storable::Bound};
 use serde::Deserialize;
 
-use super::{CanisterMemory, CanisterMemoryIds, read_config, read_memory_manager};
+use super::{
+    CanisterMemory, CanisterMemoryIds, read_config, read_memory_manager, write_commission_state,
+};
 
 #[derive(CandidType, Deserialize)]
 pub struct AgentDetail {
@@ -42,7 +44,7 @@ pub struct AgentDetail {
     pub rune: u128,
 
     // user balances
-    pub balances: HashMap<String, (u64, u128)>,
+    pub balances: HashSet<String>,
 }
 
 impl Storable for AgentDetail {
@@ -119,7 +121,7 @@ impl AgentDetail {
         min_tokens_out: u128,
     ) -> Result<u128, &'static str> {
         // Get commission receiver address
-        let commission_receiver = read_config(|config| config.commission_receiver());
+        // let commission_receiver = read_config(|config| config.commission_receiver());
 
         // Calculate fees
         let (treasury_fee, dex_fee) = self.calculate_fee(collateral_in);
@@ -130,14 +132,19 @@ impl AgentDetail {
             .ok_or("Fee subtraction underflow")?;
 
         // Record commission fees in balances (fees are in BTC, so update the bitcoin balance in the tuple)
-        let entry = self
+        write_commission_state(|state| {
+            let mut prev = state.get(&self.agent_id).unwrap_or(0);
+            prev += treasury_fee as u64 + dex_fee as u64;
+            state.insert(self.agent_id, prev);
+        });
+        /* let entry = self
             .balances
             .entry(commission_receiver.clone())
             .or_insert((0, 0));
         entry.0 = entry
             .0
             .checked_add((treasury_fee + dex_fee) as u64)
-            .ok_or("Commission transfer overflow")?;
+            .ok_or("Commission transfer overflow")?; */
 
         // Calculate tokens to receive
         let tokens_out = (collateral_to_spend * self.virtual_token_reserves)
@@ -153,7 +160,6 @@ impl AgentDetail {
             return Err("Slippage check failed");
         }
 
-        // Update virtual reserves
         self.virtual_token_reserves = self
             .virtual_token_reserves
             .checked_sub(tokens_out)
@@ -172,17 +178,15 @@ impl AgentDetail {
             .rune
             .checked_sub(tokens_out)
             .ok_or("Insufficient rune balance")?;
-
         Ok(tokens_out)
     }
 
-    /// Buy exact tokens out (BTC -> RUNE)
     pub fn buy_exact_out(
         &mut self,
         token_amount: u128,
         max_collateral: u128,
     ) -> Result<u128, &'static str> {
-        let commission_receiver = read_config(|config| config.commission_receiver());
+        // let commission_receiver = read_config(|config| config.commission_receiver());
 
         // Calculate collateral needed for token_amount
         let collateral_to_spend = token_amount
@@ -203,14 +207,19 @@ impl AgentDetail {
             .ok_or("Fee calculation overflow")?;
 
         // Record commission fees in balances (update BTC)
-        let entry = self
+        write_commission_state(|state| {
+            let mut prev = state.get(&self.agent_id).unwrap_or(0);
+            prev += treasury_fee as u64 + dex_fee as u64;
+            state.insert(self.agent_id, prev);
+        });
+        /* let entry = self
             .balances
             .entry(commission_receiver.clone())
             .or_insert((0, 0));
         entry.0 = entry
             .0
             .checked_add((treasury_fee + dex_fee) as u64)
-            .ok_or("Commission transfer overflow")?;
+            .ok_or("Commission transfer overflow")?; */
 
         // Slippage check
         if collateral_with_fee > max_collateral {
@@ -246,7 +255,7 @@ impl AgentDetail {
         token_amount: u128,
         min_collateral_out: u128,
     ) -> Result<u128, &'static str> {
-        let commission_receiver = read_config(|config| config.commission_receiver());
+        // let commission_receiver = read_config(|config| config.commission_receiver());
 
         // Calculate collateral to receive
         let collateral_to_receive = (token_amount
@@ -267,14 +276,19 @@ impl AgentDetail {
             .ok_or("Fee subtraction underflow")?;
 
         // Record commission fees in balances (update BTC)
-        let entry = self
+        write_commission_state(|state| {
+            let mut prev = state.get(&self.agent_id).unwrap_or(0);
+            prev += treasury_fee as u64 + dex_fee as u64;
+            state.insert(self.agent_id, prev);
+        });
+        /* let entry = self
             .balances
             .entry(commission_receiver.clone())
             .or_insert((0, 0));
         entry.0 = entry
             .0
             .checked_add((treasury_fee + dex_fee) as u64)
-            .ok_or("Commission transfer overflow")?;
+            .ok_or("Commission transfer overflow")?; */
 
         // Slippage check
         if collateral_minus_fee < min_collateral_out {
@@ -310,7 +324,7 @@ impl AgentDetail {
         max_token_amount: u128,
         collateral_out: u128,
     ) -> Result<u128, &'static str> {
-        let commission_receiver = read_config(|config| config.commission_receiver());
+        // let commission_receiver = read_config(|config| config.commission_receiver());
 
         // Calculate fees
         let (treasury_fee, dex_fee) = self.calculate_fee(collateral_out);
@@ -331,14 +345,19 @@ impl AgentDetail {
         .ok_or("Division by zero")?;
 
         // Record commission fees in balances (update BTC)
-        let entry = self
+        write_commission_state(|state| {
+            let mut prev = state.get(&self.agent_id).unwrap_or(0);
+            prev += treasury_fee as u64 + dex_fee as u64;
+            state.insert(self.agent_id, prev);
+        });
+        /* let entry = self
             .balances
             .entry(commission_receiver.clone())
             .or_insert((0, 0));
         entry.0 = entry
             .0
             .checked_add((treasury_fee + dex_fee) as u64)
-            .ok_or("Commission transfer overflow")?;
+            .ok_or("Commission transfer overflow")?; */
 
         // Slippage check
         if tokens_needed > max_token_amount {
