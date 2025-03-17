@@ -12,6 +12,19 @@
       "type": "custom",
       "wasm": "https://github.com/dfinity/internet-identity/releases/latest/download/internet_identity_dev.wasm.gz"
     },
+    "runes-indexer": {
+      "optimize": "cycles",
+      "gzip": true,
+      "candid": "canisters/runes_indexer/runes-indexer.did",
+      "specified_id": "f2dwm-caaaa-aaaao-qjxlq-cai",
+      "type": "custom",
+      "wasm": "./target/wasm32-unknown-unknown/release/runes_indexer.wasm",
+      "remote": {
+        "id": {
+          "ic": "f2dwm-caaaa-aaaao-qjxlq-cai"
+        }
+      }
+    },
     "llm": {
       "type": "custom",
       "wasm": "https://github.com/dfinity/llm/releases/latest/download/llm-canister-ollama.wasm",
@@ -23,18 +36,35 @@
         }
       }
     },
-    "runes-indexer": {
-      "remote": {
-        "id": {
-          "ic": "f2dwm-caaaa-aaaao-qjxlq-cai"
-        }
-      }
-    },
     "backend": {
       "type": "rust",
       "package": "backend",
       "candid": "canisters/backend/backend.did",
-      "gzip": true
+      "gzip": true,
+      "specified_id": "asrmz-lmaaa-aaaaa-qaaeq-cai"
+    },
+    "frontend": {
+      "frontend": {
+        "entrypoint": "dist/index.html"
+      },
+      "source": [
+        "dist/"
+      ],
+      "build": "npm run build",
+      "type": "assets"
+    }
+  },
+  "networks": {
+    "local": {
+      "bind": "localhost:4943",
+      "type": "ephemeral",
+      "bitcoin": {
+        "enabled": true,
+        "nodes": [
+          "0.0.0.0:18444"
+        ],
+        "log_level": "error"
+      }
     }
   },
   "output_env_file": ".env",

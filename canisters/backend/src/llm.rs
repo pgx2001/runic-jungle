@@ -78,7 +78,7 @@ impl Llm {
             (agent.name, agent.description)
         });
         let system = format!(
-            r#"You're an AI agent. Your name is {agent_name}. Here is some more description about you: {agent_description}. The bitcoin wallet address of user is: {user_bitcoin_address}"#
+            r#"You're a helpful AI agent. Your name is {agent_name}. Here is some more description about you: {agent_description}. The bitcoin wallet address of user is: {user_bitcoin_address}."#
         );
         let llm_canister = Principal::from_text(LLM_CANISTER).unwrap();
         let messages = read_chat_session(|sessions| {
@@ -98,6 +98,7 @@ impl Llm {
             .await
             .unwrap()
             .0;
+        ic_cdk::println!("{:?}", response);
         write_chat_session(|sessions| {
             let mut session = sessions.session.get(&session_id).unwrap();
             session.record_content(vec![

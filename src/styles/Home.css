@@ -1,0 +1,29 @@
+main {
+  padding: 1rem;
+  text-align: center;
+}
+
+main p {
+  font-size: 2rem;
+  padding-bottom: 1rem;
+}
+
+.agent-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding: 1rem 0;
+}
+
+.agent-item {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 1rem;
+  cursor: pointer;
+  transition: box-shadow 0.3s ease;
+  width: 300px;
+}
+
+.agent-item:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}

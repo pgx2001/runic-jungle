@@ -13,6 +13,40 @@ services:
     networks:
       - bitcoin_network
 
+  ord:
+    container_name: ord
+    build:
+      context: .
+      dockerfile: ./docker/ord.Dockerfile
+    command:
+      [
+        "--regtest",
+        "--bitcoin-data-dir",
+        "/index-data",
+        "--index-runes",
+        "--index-addresses",
+        "--index-transactions",
+        "--bitcoin-rpc-url",
+        "bitcoind:18443",
+        "server",
+        "--http-port",
+        "80",
+      ]
+    volumes:
+      - ./docker/etch.yaml:/data/etch.yaml
+      - ./docker/ic_logo.png:/data/ic_logo.png
+      - index_data:/index-data
+    environment:
+      - ORD_BITCOIN_RPC_URL=bitcoind:18443
+      - ORD_BITCOIN_RPC_USERNAME=icp
+      - ORD_BITCOIN_RPC_PASSWORD=test
+    ports:
+      - "80:80"
+    depends_on:
+      - bitcoind
+    networks:
+      - bitcoin_network
+
 volumes:
   bitcoin_data:
   index_data:

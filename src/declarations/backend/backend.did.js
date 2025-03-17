@@ -18,7 +18,7 @@ export const idlFactory = ({ IDL }) => {
   });
   const ChatArgs = IDL.Record({
     'agent' : AgentBy,
-    'session_id' : IDL.Opt(IDL.Nat),
+    'session_id' : IDL.Nat,
     'message' : IDL.Text,
   });
   const CreateAgentArgs = IDL.Record({
@@ -88,17 +88,15 @@ export const idlFactory = ({ IDL }) => {
     'buy' : IDL.Func([BuyArgs], [IDL.Nat], []),
     'chat' : IDL.Func([ChatArgs], [IDL.Text], []),
     'create_agent' : IDL.Func([CreateAgentArgs], [IDL.Nat], []),
+    'create_chat_session' : IDL.Func([AgentBy], [IDL.Nat], []),
     'get_agent_of' : IDL.Func([AgentBy], [IDL.Opt(AgentDetails)], ['query']),
     'get_agents' : IDL.Func(
         [],
         [IDL.Vec(IDL.Tuple(IDL.Nat, AgentDetails))],
         ['query'],
       ),
-    'get_balances' : IDL.Func(
-        [],
-        [IDL.Vec(IDL.Tuple(IDL.Text, IDL.Nat))],
-        ['composite_query'],
-      ),
+    'get_balances' : IDL.Func([], [IDL.Vec(IDL.Tuple(IDL.Text, IDL.Nat))], []),
+    'get_bitcoin_balance' : IDL.Func([], [IDL.Nat64], []),
     'get_deposit_address' : IDL.Func([], [IDL.Text], ['query']),
     'http_request' : IDL.Func([HttpRequest], [HttpResponse], ['query']),
     'lucky_draw' : IDL.Func([LuckyDraw], [IDL.Text], []),

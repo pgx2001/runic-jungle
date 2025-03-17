@@ -1,0 +1,44 @@
+.vault-container {
+  max-width: 600px;
+  margin: 50px auto;
+  padding: 20px;
+  background: #ffffff;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+  text-align: center;
+}
+
+h1 {
+  font-size: 24px;
+  margin-bottom: 20px;
+}
+
+.loading {
+  font-size: 18px;
+  color: #555;
+}
+
+.balance-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+}
+
+.balance-table th,
+.balance-table td {
+  padding: 10px;
+  border: 1px solid #ddd;
+}
+
+.balance-table th {
+  background-color: #f4f4f4;
+  font-weight: bold;
+}
+
+.balance-table tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+.balance-table tr:hover {
+  background-color: #f1f1f1;
+}

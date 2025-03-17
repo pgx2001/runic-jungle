@@ -40,7 +40,7 @@ export default function CreateAgent({ wallet }) {
 
   const create_agent = async () => {
     try {
-      const agent = new HttpAgent({ identity: wallet });
+      const agent = await HttpAgent.create({ identity: wallet });
       const backend = createActor(canisterId, { agent });
       await backend.create_agent({
         ticker: formData.ticker ? [Number(formData.ticker)] : [],

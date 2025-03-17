@@ -1,62 +1,146 @@
-import Navbar from "./../components/Navbar"
-import { useEffect, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { backend } from "./../declarations/backend";
+import "./../styles/Agent.css";
+import Navbar from "./../components/Navbar";
+import { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
+import Market from "../components/Market";
+import Jackpot from "../components/Jackpot";
 
 export default function Agent({
   agent,
+  bitcoinAddress,
+  setBitcoinAddress,
+  bitcoinBalance,
+  setBitcoinBalance,
   setAgent,
   wallet,
   setWallet,
-  setWarningMessage
+  setWarningMessage,
 }) {
   const location = useLocation();
   const [agentData, setAgentData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedTab, setSelectedTab] = useState("market");
 
   const query = new URLSearchParams(location.search);
-  const idParam = query.get('id');
+  const idParam = query.get("id");
   const id = idParam ? Number(idParam) : null;
 
   useEffect(() => {
     if (id === null || isNaN(id)) {
-      setError('Invalid or missing id parameter');
+      setError("Invalid or missing id parameter");
       setLoading(false);
       return;
     }
-    setLoading(false)
-    console.log("id:", id)
+    const agentByArg = { Id: id };
 
-    // Create the variant argument with the number value.
-    // const agentByArg = { Id: id };
-
-
-    // Call the smart contract method
-    /* backend.get_agent_of(agentByArg)
+    backend
+      .get_agent_of(agentByArg)
       .then((result) => {
-        setAgentData(result); // result is an Option
+        if (result) {
+          console.log("from_agent_page");
+          console.log(result[0]);
+          setAgentData(result[0]);
+        } else {
+          setError("No agent data found.");
+        }
       })
       .catch((err) => {
-        console.error('Error fetching agent data:', err);
-        setError('Failed to load agent data.');
+        console.error("Error fetching agent data:", err);
+        setError("Failed to load agent data.");
       })
-      .finally(() => setLoading(false)); */
-  }, [id, /*backend*/]);
+      .finally(() => setLoading(false));
+  }, [id]);
+
+  // Convert BigInt to Number explicitly before performing arithmetic
+  const marketCapInBTC = agentData
+    ? (Number(agentData.market_cap) / 1e8).toFixed(8)
+    : null;
+
+  const renderTabContent = () => {
+    if (!agentData) return null;
+    switch (selectedTab) {
+      case "market":
+        return (
+          <Market agent_id={id} symbol={agentData.symbol} wallet={wallet} setWarningMessage={setWarningMessage} />
+        );
+      case "jackpot":
+        return (
+          <Jackpot agent_id={id} wallet={wallet} current_prize_pool={agentData.current_prize_pool} setWarningMessage={setWarningMessage} />
+        );
+      case "chat":
+        return (
+          <div className="tab-content">
+            <h2>Chat with Bot</h2>
+            <p>Chat component will be rendered here.</p>
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
 
   if (loading) return <div>Loading agent data...</div>;
-  if (error) return <div>{error}</div>;
+  if (error) return <div className="error">{error}</div>;
 
-
-  return <div>
-    <Navbar title={"gooad"} agent={agent} setAgent={setAgent} wallet={wallet} setWallet={setWallet} setWarningMessage={setWarningMessage} />
-    {agentData ? (
-      <div>
-        <p><strong>Agent Name:</strong> {"gooad"}</p>
-        <p><strong>Description:</strong> {"lorem*10"}</p>
-        <p><strong>Market Cap:</strong> {"100btc"}</p>
+  return (
+    <div className="agent-page">
+      <Navbar
+        title={agentData.agent_name}
+        agent={agent}
+        bitcoinAddress={bitcoinAddress}
+        setBitcoinAddress={setBitcoinAddress}
+        bitcoinBalance={bitcoinBalance}
+        setBitcoinBalance={setBitcoinBalance}
+        setAgent={setAgent}
+        wallet={wallet}
+        setWallet={setWallet}
+        setWarningMessage={setWarningMessage}
+      />
+      <div className="agent-details">
+        <h1>{agentData.agent_name}</h1>
+        <p>{agentData.description}</p>
+        <div className="agent-extra-info">
+          <p>
+            <strong>Market Cap:</strong> ₿ {marketCapInBTC}
+          </p>
+          <p>
+            <strong>Ticker:</strong> {agentData.ticker}
+          </p>
+          <p>
+            <strong>Holders:</strong> {agentData.holders}
+          </p>
+        </div>
+        {agentData.logo && (
+          <img
+            src={agentData.logo}
+            alt={`${agentData.agent_name} logo`}
+            className="agent-logo"
+          />
+        )}
       </div>
-    ) : (
-      <p>No agent data found.</p>
-    )}
-  </div>
+      <div className="tabs">
+        <button
+          className={selectedTab === "market" ? "tab active" : "tab"}
+          onClick={() => setSelectedTab("market")}
+        >
+          Market
+        </button>
+        <button
+          className={selectedTab === "jackpot" ? "tab active" : "tab"}
+          onClick={() => setSelectedTab("jackpot")}
+        >
+          Hit The Jackpot
+        </button>
+        <button
+          className={selectedTab === "chat" ? "tab active" : "tab"}
+          onClick={() => setSelectedTab("chat")}
+        >
+          Chat with Bot
+        </button>
+      </div>
+      <div className="tab-container">{renderTabContent()}</div>
+    </div>
+  );
 }

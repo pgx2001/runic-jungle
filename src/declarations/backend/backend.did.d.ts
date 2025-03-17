@@ -33,7 +33,7 @@ export interface BuyArgs {
 }
 export interface ChatArgs {
   'agent' : AgentBy,
-  'session_id' : [] | [bigint],
+  'session_id' : bigint,
   'message' : string,
 }
 export interface CreateAgentArgs {
@@ -90,9 +90,11 @@ export interface _SERVICE {
   'buy' : ActorMethod<[BuyArgs], bigint>,
   'chat' : ActorMethod<[ChatArgs], string>,
   'create_agent' : ActorMethod<[CreateAgentArgs], bigint>,
+  'create_chat_session' : ActorMethod<[AgentBy], bigint>,
   'get_agent_of' : ActorMethod<[AgentBy], [] | [AgentDetails]>,
   'get_agents' : ActorMethod<[], Array<[bigint, AgentDetails]>>,
   'get_balances' : ActorMethod<[], Array<[string, bigint]>>,
+  'get_bitcoin_balance' : ActorMethod<[], bigint>,
   'get_deposit_address' : ActorMethod<[], string>,
   'http_request' : ActorMethod<[HttpRequest], HttpResponse>,
   'lucky_draw' : ActorMethod<[LuckyDraw], string>,

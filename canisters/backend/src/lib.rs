@@ -54,8 +54,6 @@ async fn lazy_ecdsa_schnorr_setup() {
 #[derive(CandidType, Deserialize)]
 pub struct InitArgs {
     pub bitcoin_network: BitcoinNetwork,
-    pub creation_fee: u64,
-    pub commission: u16,
     pub commission_receiver: Option<candid::Principal>,
 }
 
@@ -63,8 +61,6 @@ pub struct InitArgs {
 pub fn init(
     InitArgs {
         bitcoin_network,
-        creation_fee,
-        commission,
         commission_receiver,
     }: InitArgs,
 ) {
@@ -80,8 +76,6 @@ pub fn init(
         temp.keyname = keyname;
         temp.bitcoin_network = bitcoin_network;
         temp.commission_receiver = commission_receiver;
-        temp.creation_fee = creation_fee;
-        temp.commission = commission;
         config.set(temp).expect("failed to set config");
     });
     ic_cdk_timers::set_timer(std::time::Duration::from_secs(5), || {
@@ -101,7 +95,28 @@ pub fn get_deposit_address() -> String {
     bitcoin::account_to_p2pkh_address(&account)
 }
 
-#[query(composite = true)]
+#[update]
+pub async fn get_bitcoin_balance() -> u64 {
+    let caller = ic_cdk::caller();
+    let account = utils::get_account_for(&caller);
+    let bitcoin_address = bitcoin::account_to_p2pkh_address(&account);
+    let bitcoin_balance = ic_cdk::api::management_canister::bitcoin::bitcoin_get_balance(
+        ic_cdk::api::management_canister::bitcoin::GetBalanceRequest {
+            address: bitcoin_address,
+            network: read_config(|config| config.bitcoin_network()),
+            min_confirmations: None,
+        },
+    )
+    .await
+    .unwrap()
+    .0;
+    read_ledger_entries(|entries| {
+        let entry = entries.get(&caller).unwrap_or_default();
+        bitcoin_balance - entry.restricted_bitcoin_balance
+    })
+}
+
+#[update]
 pub async fn get_balances() -> HashMap<String, u128> {
     let caller = ic_cdk::caller();
     let account = utils::get_account_for(&caller);
@@ -206,16 +221,26 @@ pub async fn create_agent(
     let bitcoin_address = bitcoin::account_to_p2pkh_address(&account);
 
     //get the balance
-    indexer::fetch_utxos_and_update(
+    /* indexer::fetch_utxos_and_update(
         &bitcoin_address,
         indexer::TargetType::Bitcoin { target: u64::MAX },
     )
-    .await;
+    .await; */
+
+    let bitcoin_balance = ic_cdk::api::management_canister::bitcoin::bitcoin_get_balance(
+        ic_cdk::api::management_canister::bitcoin::GetBalanceRequest {
+            address: bitcoin_address.clone(),
+            network: read_config(|config| config.bitcoin_network()),
+            min_confirmations: None,
+        },
+    )
+    .await
+    .unwrap()
+    .0;
 
     let bitcoin_balance = read_ledger_entries(|entries| {
         let entry = entries.get(&caller).unwrap_or_default();
-        let balance = read_utxo_manager(|manager| manager.get_bitcoin_balance(&bitcoin_address));
-        balance - entry.restricted_bitcoin_balance
+        bitcoin_balance - entry.restricted_bitcoin_balance
     });
 
     if bitcoin_balance < 30_000 {
@@ -227,12 +252,12 @@ pub async fn create_agent(
             .expect("Etching Arg validation failed");
 
     // checking if rune is occupied
-    if indexer::runes_indexer::get_rune(spaced_rune.to_string())
+    /* if indexer::runes_indexer::get_rune(spaced_rune.to_string())
         .await
         .is_some()
     {
         ic_cdk::trap("Rune already taken")
-    }
+    } */
 
     let secret = llm::Llm::generate_secret_word(&spaced_rune.to_string(), &description).await;
     ic_cdk::println!("secret word: {}", secret);
@@ -279,7 +304,7 @@ pub async fn create_agent(
         symbol,
         turbo: true,
         fee_payer,
-        fee_per_vbytes: 1_000,
+        fee_per_vbytes: 20_000,
         fee_payer_account: account,
     })
     .await
@@ -295,11 +320,11 @@ pub async fn create_agent(
                 let mut agent = agents.mapping.get(&id).expect("should exist");
                 agent.txns.0.replace(commit);
                 agent.txns.1.replace(reveal);
+                agents.mapping.insert(id, agent);
             });
             handler
         }
     };
-
     handler.submit().await;
     id
 }
@@ -429,10 +454,17 @@ pub fn lucky_draw(LuckyDraw { id, message }: LuckyDraw) -> String {
     })
 }
 
+#[update]
+pub fn create_chat_session(agent: AgentBy) -> u128 {
+    let caller = ic_cdk::caller();
+    let agent_id = read_agents(|agents| agents.find_agent_id(agent)).expect("agent doesn't exist");
+    write_chat_session(|session| session.start_new_session(agent_id, caller))
+}
+
 #[derive(CandidType, Deserialize)]
 pub struct ChatArgs {
     pub agent: AgentBy,
-    pub session_id: Option<u128>,
+    pub session_id: u128,
     pub message: String,
 }
 
@@ -446,9 +478,6 @@ pub async fn chat(
 ) -> String {
     let caller = ic_cdk::caller();
     let agent_id = read_agents(|agents| agents.find_agent_id(agent)).expect("agent doesn't exist");
-    let session_id = session_id.unwrap_or_else(|| {
-        write_chat_session(|session| session.start_new_session(agent_id, caller.clone()))
-    });
     let account = utils::get_account_for(&caller);
     let user_bitcoin_address = bitcoin::account_to_p2pkh_address(&account);
     llm::Llm::chat(session_id, agent_id, user_bitcoin_address, message).await

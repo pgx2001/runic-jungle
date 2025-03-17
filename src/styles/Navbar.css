@@ -13,8 +13,10 @@ nav {
   align-items: center;
 }
 
-.title {
+nav .title {
+  color: white;
   font-size: 2rem;
+  text-decoration: none;
 }
 
 @keyframes glow {
@@ -51,13 +53,11 @@ nav {
   animation: glow 1.5s infinite alternate ease-in-out;
 }
 
-/* Hover effect */
 .home-btn:hover {
   background: linear-gradient(45deg, #ba55d3, #ff69b4, #dda0dd);
   transform: scale(1.05);
 }
 
-/* Adding a soft glow effect */
 .home-btn::before {
   content: "";
   position: absolute;
@@ -99,4 +99,29 @@ nav {
   font-weight: bold;
   color: goldenrod;
   margin-right: 1rem;
+}
+
+.bitcoin-info {
+  font-size: 1rem;
+  color: lightgreen;
+  margin-right: 1rem;
+  white-space: nowrap;
+}
+
+.vault-btn {
+  background: linear-gradient(45deg, #ff9800, #ff5722);
+  color: white;
+  padding: 0.5rem 1rem;
+  font-size: 1rem;
+  font-weight: bold;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.3s ease-in-out;
+  margin-right: 1rem;
+}
+
+.vault-btn:hover {
+  background: linear-gradient(45deg, #ff5722, #ff9800);
+  transform: scale(1.05);
 }

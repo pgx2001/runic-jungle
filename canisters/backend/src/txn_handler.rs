@@ -96,6 +96,7 @@ impl TransactionType {
                 });
                 let txid = commit.compute_txid().to_string();
                 let txn = bitcoin::consensus::serialize(&commit);
+                ic_cdk::println!("commit: {}", hex::encode(&txn));
                 if bitcoin_send_transaction(SendTransactionRequest {
                     transaction: txn,
                     network,
@@ -699,6 +700,7 @@ async fn submit_txn(id: u128) {
         ic_cdk::trap("Not enough commit confirmation")
     }
     let transaction = bitcoin::consensus::serialize(&txn.txn);
+    ic_cdk::println!("reveal: {}", hex::encode(&transaction));
     if bitcoin_send_transaction(SendTransactionRequest {
         network,
         transaction,

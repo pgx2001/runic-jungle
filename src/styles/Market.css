@@ -1,0 +1,75 @@
+.market {
+  padding: 20px;
+  background-color: #fff;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  font-family: Arial, sans-serif;
+  margin: 20px;
+}
+
+.title {
+  font-size: 24px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.tabs {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.tab {
+  padding: 10px 20px;
+  border: none;
+  background-color: #eaeaea;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background-color 0.3s ease;
+}
+
+.tab:hover {
+  background-color: #d4d4d4;
+}
+
+.tab.active {
+  background-color: #007bff;
+  color: #fff;
+  font-weight: bold;
+}
+
+.market-form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.market-form label {
+  font-size: 16px;
+  margin-bottom: 10px;
+}
+
+.market-form input {
+  width: 80%;
+  padding: 10px;
+  margin-bottom: 20px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 16px;
+}
+
+.market-form button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  background-color: #007bff;
+  color: #fff;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.market-form button:hover {
+  background-color: #0056b3;
+}

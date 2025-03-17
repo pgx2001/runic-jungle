@@ -24,11 +24,7 @@ type BuyArgs = record {
   amount_out_min : nat;
   buy_exact_in : nat64;
 };
-type ChatArgs = record {
-  agent : AgentBy;
-  session_id : opt nat;
-  message : text;
-};
+type ChatArgs = record { agent : AgentBy; session_id : nat; message : text };
 type CreateAgentArgs = record {
   ticker : opt nat32;
   twitter : opt text;
@@ -83,9 +79,11 @@ service : (InitArgs) -> {
   buy : (BuyArgs) -> (nat);
   chat : (ChatArgs) -> (text);
   create_agent : (CreateAgentArgs) -> (nat);
+  create_chat_session : (AgentBy) -> (nat);
   get_agent_of : (AgentBy) -> (opt AgentDetails) query;
   get_agents : () -> (vec record { nat; AgentDetails }) query;
-  get_balances : () -> (vec record { text; nat }) composite_query;
+  get_balances : () -> (vec record { text; nat });
+  get_bitcoin_balance : () -> (nat64);
   get_deposit_address : () -> (text) query;
   http_request : (HttpRequest) -> (HttpResponse) query;
   lucky_draw : (LuckyDraw) -> (text);

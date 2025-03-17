@@ -495,7 +495,10 @@ impl AgentState {
         let mut len = self.mapping.len() as u128 - 1;
         let mut map = HashMap::new();
         loop {
-            let agent_query = self.mapping.get(&len).unwrap().agent_query();
+            let agent_query = match self.mapping.get(&len) {
+                None => break,
+                Some(agent) => agent.agent_query(),
+            };
             map.insert(len, agent_query);
             len -= 1;
             if map.len() >= 50 {

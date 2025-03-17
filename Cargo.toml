@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["canisters/backend"]
+members = ["canisters/backend", "canisters/runes_indexer"]
 
 [workspace.dependencies]
 ic-cdk = "0.17.1"
