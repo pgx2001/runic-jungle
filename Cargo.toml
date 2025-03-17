@@ -34,3 +34,5 @@ num-integer = "0.1.46"
 slotmap = { version = "1.0.7", features = ["serde"] }
 
 ciborium = "0.2.2" 
+
+base64 = "0.22.1"

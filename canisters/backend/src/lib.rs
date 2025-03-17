@@ -504,6 +504,7 @@ pub struct StreamingCallbackHttpResponse {
 
 define_function!(pub CallbackFunc: () -> () query);
 
+/*
 fn get_agent_id(url: &str) -> u128 {
     let url_split_by_path = url.split('/').collect::<Vec<&str>>();
     let last_elem = url_split_by_path[url_split_by_path.len() - 1];
@@ -514,16 +515,90 @@ fn get_agent_id(url: &str) -> u128 {
 
 #[query]
 pub fn http_request(req: HttpRequest) -> HttpResponse {
-    /* let agent_id = get_agent_id(&req.url);
+    let agent_id = get_agent_id(&req.url);
+    let not_found = HttpResponse {
+        body: b"Asset not Found".to_vec(),
+        status_code: 404,
+        headers: vec![],
+        streaming_strategy: None,
+    };
     read_agents(|agents| match agents.mapping.get(&agent_id) {
-        None => HttpResponse {
-            body: b"Asset not Found".to_vec(),
-            status_code: 404,
-            headers: vec![],
-            streaming_strategy: None,
+        None => not_found,
+        Some(agent) => match agent.logo {
+            None => not_found,
+            Some(image) => HttpResponse {
+                body: image.as_bytes().to_vec(),
+                status_code: 200,
+                headers: vec![HeaderField(
+                    "Content-Type".to_string(),
+                    "image/png".to_string(),
+                )],
+                streaming_strategy: None,
+            },
         },
-    }) */
-    todo!()
+    })
+}
+*/
+
+fn get_agent_id(url: &str) -> Option<u128> {
+    let url_split_by_path: Vec<&str> = url.split('/').collect();
+    let last_elem = url_split_by_path.last()?; // Safe access
+    let first_elem = last_elem.split('?').next()?; // Extract ID before query params
+    first_elem.trim().parse::<u128>().ok() // Safe parsing
+}
+
+#[query]
+pub fn http_request(req: HttpRequest) -> HttpResponse {
+    let agent_id = match get_agent_id(&req.url) {
+        Some(id) => id,
+        None => {
+            return HttpResponse {
+                body: b"Invalid Agent ID".to_vec(),
+                status_code: 400,
+                headers: vec![],
+                streaming_strategy: None,
+            };
+        }
+    };
+
+    let not_found = HttpResponse {
+        body: b"Asset not Found".to_vec(),
+        status_code: 404,
+        headers: vec![],
+        streaming_strategy: None,
+    };
+
+    read_agents(|agents| match agents.mapping.get(&agent_id) {
+        None => not_found,
+        Some(agent) => match &agent.logo {
+            None => not_found,
+            Some(image) => {
+                let image_bytes = if image.starts_with("data:image/") {
+                    // If it's Base64 encoded, decode it
+                    let base64_data = image.split(',').nth(1); // Extract base64 part
+                    match base64_data {
+                        Some(data) => match base64::decode(data) {
+                            Ok(decoded) => decoded,
+                            Err(_) => return not_found, // Decoding failed
+                        },
+                        None => return not_found, // Invalid Base64 URI
+                    }
+                } else {
+                    image.as_bytes().to_vec() // Assume it's already raw bytes
+                };
+
+                HttpResponse {
+                    body: image_bytes,
+                    status_code: 200,
+                    headers: vec![HeaderField(
+                        "Content-Type".to_string(),
+                        "image/png".to_string(), // Adjust based on actual format
+                    )],
+                    streaming_strategy: None,
+                }
+            }
+        },
+    })
 }
 
 ic_cdk::export_candid!();
