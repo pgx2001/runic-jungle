@@ -17,3 +17,12 @@ pub fn get_account_for(principal: &Principal) -> Account {
         subaccount: Some(subaccount),
     }
 }
+
+pub fn generate_subaccount_for_agent(id: u128) -> [u8; 32] {
+    let mut hash = [0u8; 32];
+    let mut hasher = Sha3::v256();
+    hasher.update(ic_cdk::id().as_slice());
+    hasher.update(id.to_le_bytes().as_ref());
+    hasher.finalize(&mut hash);
+    hash
+}

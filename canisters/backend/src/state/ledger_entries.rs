@@ -28,7 +28,7 @@ impl BalanceEntries {
     }
 } */
 
-#[derive(CandidType, Deserialize)]
+#[derive(CandidType, Deserialize, Default)]
 pub struct BalanceEntries {
     pub restricted_bitcoin_balance: u64,
     pub ledger_entries: HashMap<u128, (u64, u128)>, // mapping of agent_id to (bitcoin owned by ageint, rune balance of user)

@@ -7,6 +7,7 @@ use std::collections::HashMap;
 #[derive(CandidType, Deserialize)]
 pub struct Session {
     pub session_id: u128,
+    pub agent_id: u128,
     pub last_interacted: u64, // chat's will be deleted after 30 mins of no action
     pub user: Principal,
     pub past: HashMap<u32, (bool, String)>, // true if the message is by agent
@@ -25,9 +26,10 @@ impl Storable for Session {
 }
 
 impl Session {
-    pub fn new(id: u128, user: Principal) -> Self {
+    pub fn new(id: u128, agent_id: u128, user: Principal) -> Self {
         Self {
             session_id: id,
+            agent_id,
             user,
             last_interacted: ic_cdk::api::time(),
             past: HashMap::new(),
@@ -85,9 +87,9 @@ impl ChatSession {
         id
     }
 
-    pub fn start_new_session(&mut self, user: Principal) -> u128 {
+    pub fn start_new_session(&mut self, agent: u128, user: Principal) -> u128 {
         let id = self.get_session_id();
-        let session = Session::new(id, user);
+        let session = Session::new(id, agent, user);
         self.session.insert(id, session);
         id
     }

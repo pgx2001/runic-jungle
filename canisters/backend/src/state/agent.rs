@@ -1,8 +1,7 @@
-use std::collections::{HashMap, HashSet};
-
 use candid::{CandidType, Decode, Encode, Principal};
 use ic_stable_structures::{StableBTreeMap, Storable, storable::Bound};
 use serde::Deserialize;
+use std::collections::{HashMap, HashSet};
 
 use super::{
     CanisterMemory, CanisterMemoryIds, read_config, read_memory_manager, write_commission_state,
@@ -102,6 +101,7 @@ impl AgentDetail {
             holders: self.balances.len() as u32,
             market_cap: self.market_cap() as u64,
             current_prize_pool: self.current_prize_pool,
+            current_winner: self.current_winner.clone(),
             txns: self.txns.clone(),
         }
     }
@@ -120,9 +120,6 @@ impl AgentDetail {
         collateral_in: u128,
         min_tokens_out: u128,
     ) -> Result<u128, &'static str> {
-        // Get commission receiver address
-        // let commission_receiver = read_config(|config| config.commission_receiver());
-
         // Calculate fees
         let (treasury_fee, dex_fee) = self.calculate_fee(collateral_in);
         let collateral_to_spend = collateral_in
@@ -137,15 +134,6 @@ impl AgentDetail {
             prev += treasury_fee as u64 + dex_fee as u64;
             state.insert(self.agent_id, prev);
         });
-        /* let entry = self
-            .balances
-            .entry(commission_receiver.clone())
-            .or_insert((0, 0));
-        entry.0 = entry
-            .0
-            .checked_add((treasury_fee + dex_fee) as u64)
-            .ok_or("Commission transfer overflow")?; */
-
         // Calculate tokens to receive
         let tokens_out = (collateral_to_spend * self.virtual_token_reserves)
             .checked_div(
@@ -411,7 +399,7 @@ impl Default for AgentState {
 }
 
 impl AgentState {
-    fn get_agent_id(&mut self) -> u128 {
+    pub fn get_agent_id(&mut self) -> u128 {
         let id = self._count;
         self._count += 1;
         id
@@ -432,9 +420,66 @@ impl AgentState {
         }
     }
 
-    pub fn create_agent(&mut self) -> u128 {
-        let id = self.get_agent_id();
-        todo!()
+    pub fn create_agent(
+        &mut self,
+        id: u128,
+        created_by: Principal,
+        allocated_raw_subaccount: [u8; 32],
+        secret: String,
+        name: String,
+        ticker: u32,
+        logo: Option<String>, // should be in uri format
+        description: String,
+        website: Option<String>,
+        twitter: Option<String>,
+        openchat: Option<String>,
+        discord: Option<String>,
+        total_supply: u128,
+    ) -> (Option<String>, String) {
+        let agent = AgentDetail {
+            allocated_raw_subaccount,
+            agent_id: id,
+            created_at: ic_cdk::api::time(),
+            created_by,
+            txns: (None, None),
+            runeid: None,
+            name: name.clone(),
+            ticker,
+            logo,
+            description,
+            twitter,
+            openchat,
+            discord,
+            website,
+
+            total_supply,
+            virtual_token_reserves: 750000000,
+            virtual_collateral_reserves: 75000000,
+            fee_bps: 30,
+            dex_fee_bps: 3000,
+            max_bps: 10000,
+
+            secret: Some(secret),
+            past_winners: HashSet::new(),
+            current_winner: None,
+            current_prize_pool: (0, 500_000_000),
+
+            balances: HashSet::new(),
+            rune: 1000_000_000,
+            bitcoin: 0,
+        };
+        let url = agent.logo_url();
+        let addr = agent.get_bitcoin_address();
+        self._associated_set.insert(name, id);
+        self.mapping.insert(id, agent);
+        (url, addr)
+    }
+
+    pub fn delete_agent(&mut self, id: u128) {
+        let agent = self.mapping.remove(&id);
+        if let Some(agent) = agent {
+            self._associated_set.remove(&agent.name);
+        }
     }
 
     pub fn get_agents(&self) -> HashMap<u128, crate::AgentDetails> {
@@ -455,7 +500,7 @@ impl AgentState {
         self.mapping.get(&id).map(|detail| detail.agent_query())
     }
 
-    pub fn get_amount_out_and_fee(&self, id: u128) {}
+    pub fn get_amount_out_and_fee(&self) {}
 
     pub fn buy(&mut self, id: u128, min_tokens_out: u128) -> u128 {
         let mut agent = self.mapping.get(&id).expect("doesn't exist");
@@ -463,8 +508,4 @@ impl AgentState {
     }
 
     pub fn sell(&mut self, id: u128) {}
-
-    pub fn get_lucky_draw_detail(&self, id: u128) {}
-
-    pub fn bait_the_bot(&mut self, id: u128) {}
 }
