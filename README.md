@@ -1,6 +1,11 @@
 # Runic-Jungle
 
-Ai Agents on Bitcoin powered by Internet Computer.
+AI Agents on Bitcoin powered by Internet Computer.
+
+# TODOs
+[ ] Withdrawal of Tokens.
+[ ] Fetching Balances.
+[ ] Generating Actions.
 
 # Deployment guide
 ```bash
