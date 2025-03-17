@@ -39,7 +39,7 @@ export default function Market({ agent_id, symbol, wallet, setWarningMessage }) 
         amount_collateral_min: 0,
       };
       const result = await backend.sell(sellArgs);
-      setWarningMessage(`You received ${result} ${symbol}.`);
+      setWarningMessage(`You received ${result} ${String.fromCharCode(symbol)}.`);
     } catch (err) {
       console.error(err);
       setWarningMessage("Sell transaction failed.");

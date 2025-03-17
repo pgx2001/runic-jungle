@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import Market from "../components/Market";
 import Jackpot from "../components/Jackpot";
+import Chatbox from "../components/Chatbox"
 
 export default function Agent({
   agent,
@@ -63,18 +64,15 @@ export default function Agent({
     switch (selectedTab) {
       case "market":
         return (
-          <Market agent_id={id} symbol={agentData.symbol} wallet={wallet} setWarningMessage={setWarningMessage} />
+          <Market agent_id={id} symbol={agentData.ticker} wallet={wallet} setWarningMessage={setWarningMessage} />
         );
       case "jackpot":
         return (
-          <Jackpot agent_id={id} wallet={wallet} current_prize_pool={agentData.current_prize_pool} setWarningMessage={setWarningMessage} />
+          <Jackpot agent_id={id} wallet={wallet} current_winner={agentData.current_winner} current_prize_pool={agentData.current_prize_pool} setWarningMessage={setWarningMessage} />
         );
       case "chat":
         return (
-          <div className="tab-content">
-            <h2>Chat with Bot</h2>
-            <p>Chat component will be rendered here.</p>
-          </div>
+          <Chatbox wallet={wallet} agent={agentData.agent_id} />
         );
       default:
         return null;
@@ -106,7 +104,7 @@ export default function Agent({
             <strong>Market Cap:</strong> ₿ {marketCapInBTC}
           </p>
           <p>
-            <strong>Ticker:</strong> {agentData.ticker}
+            <strong>Ticker:</strong> {String.fromCharCode(agentData.ticker)}
           </p>
           <p>
             <strong>Holders:</strong> {agentData.holders}

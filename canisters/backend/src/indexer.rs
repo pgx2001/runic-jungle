@@ -128,7 +128,7 @@ pub async fn fetch_utxos_and_update(addr: &str, target: TargetType) {
             requesting_utxos.push(txid_with_vout);
         }
 
-        match runes_indexer::get_rune_balances_for_outputs(requesting_utxos).await {
+        /* match runes_indexer::get_rune_balances_for_outputs(requesting_utxos).await {
             Err(_) => {
                 ic_cdk::println!(
                     "failed to fetch the rune balances. Recording everything as Bitcoin UTXOS"
@@ -169,7 +169,9 @@ pub async fn fetch_utxos_and_update(addr: &str, target: TargetType) {
                     manager.record_bitcoin_utxos(addr, bitcoin_utxos);
                 })
             }
-        }
+        } */
+
+        write_utxo_manager(|manager| manager.record_bitcoin_utxos(addr, utxo_response.utxos));
 
         match target {
             TargetType::Runic { ref runeid, target } => {

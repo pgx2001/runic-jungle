@@ -26,7 +26,14 @@ export default function Vault({
         const backend = createActor(canisterId, { agent: agentInstance });
         const result = await backend.get_balances();
         console.log(result);
-        setBalances(result);
+
+        // Convert the array of tuples to an object
+        const balanceObject = {};
+        result.forEach(([name, balance]) => {
+          balanceObject[name] = balance.toString(); // Convert Nat to string
+        });
+
+        setBalances(balanceObject);
       } catch (error) {
         console.error("Error fetching balances:", error);
       } finally {

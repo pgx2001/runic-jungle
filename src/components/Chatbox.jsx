@@ -53,7 +53,7 @@ export default function Chatbox({ wallet, agent }) {
 
   return (
     <div className="chatbox">
-      <h1 className="title">Market</h1>
+      <h1 className="title">Chat with Bot</h1>
       <div className="messages">
         {messages.map((msg, index) => (
           <div key={index} className={`message ${msg.sender}`}>{msg.sender}: {msg.text}</div>
