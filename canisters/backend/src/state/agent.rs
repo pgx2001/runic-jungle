@@ -67,7 +67,16 @@ impl AgentDetail {
             config.bitcoin_network()
                 == ic_cdk::api::management_canister::bitcoin::BitcoinNetwork::Regtest
         });
-        todo!()
+        let canister_id = ic_cdk::id();
+        let url = if localhost {
+            format!(
+                "http://{canister_id}.localhost:4943/agent/{}",
+                self.agent_id
+            )
+        } else {
+            format!("https://{canister_id}.raw.ic0.app/asset/{}", self.agent_id)
+        };
+        Some(url)
     }
 
     pub fn get_bitcoin_address(&self) -> String {

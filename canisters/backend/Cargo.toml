@@ -37,3 +37,4 @@ runes-indexer-interface.workspace = true
 slotmap.workspace = true
 
 ciborium.workspace = true
+base64.workspace = true

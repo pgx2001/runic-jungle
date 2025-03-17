@@ -8,8 +8,8 @@ use std::str::FromStr;
 use crate::bitcoin_lib::Amount;
 use ordinals::{Etching, SpacedRune};
 
-const DEFAULT_POSTAGE: u64 = 10_000;
-const TARGET_POSTAGE: Amount = Amount::from_sat(10_000);
+const DEFAULT_POSTAGE: u64 = 546;
+const TARGET_POSTAGE: Amount = Amount::from_sat(546);
 const MAX_STANDARD_OP_RETURN_SIZE: usize = 83;
 
 pub fn validate_etching(
