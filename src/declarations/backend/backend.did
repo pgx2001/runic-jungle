@@ -1,5 +1,6 @@
 type AgentBy = variant { Id : nat; Name : text };
 type AgentDetails = record {
+  current_winner : opt principal;
   market_cap : nat64;
   ticker : nat32;
   current_prize_pool : record { nat64; nat };
@@ -17,7 +18,12 @@ type AgentDetails = record {
   total_supply : nat;
   openchat : opt text;
 };
-type BuyArgs = record { id : AgentBy; min_amount_out : nat };
+type BitcoinNetwork = variant { mainnet; regtest; testnet };
+type BuyArgs = record {
+  id : AgentBy;
+  amount_out_min : nat;
+  buy_exact_in : nat64;
+};
 type ChatArgs = record {
   agent : AgentBy;
   session_id : opt nat;
@@ -45,8 +51,18 @@ type HttpResponse = record {
   streaming_strategy : opt StreamingStrategy;
   status_code : nat16;
 };
+type InitArgs = record {
+  commission_receiver : opt principal;
+  commission : nat16;
+  creation_fee : nat64;
+  bitcoin_network : BitcoinNetwork;
+};
 type LuckyDraw = record { id : AgentBy; message : text };
-type SellArgs = record { id : AgentBy; min_amount_out : nat64 };
+type SellArgs = record {
+  id : AgentBy;
+  token_amount : nat;
+  amount_collateral_min : nat64;
+};
 type StreamingCallbackToken = record {
   chunk_index : nat32;
   asset_id : nat;
@@ -63,15 +79,16 @@ type WithdrawalType = variant {
   Rune : record { runeid : AgentBy; amount : nat };
   Bitcoin : record { amount : nat64 };
 };
-service : {
-  buy : (BuyArgs) -> ();
-  chat : (ChatArgs) -> ();
+service : (InitArgs) -> {
+  buy : (BuyArgs) -> (nat);
+  chat : (ChatArgs) -> (text);
   create_agent : (CreateAgentArgs) -> (nat);
   get_agent_of : (AgentBy) -> (opt AgentDetails) query;
   get_agents : () -> (vec record { nat; AgentDetails }) query;
+  get_balances : () -> (vec record { text; nat }) composite_query;
   get_deposit_address : () -> (text) query;
   http_request : (HttpRequest) -> (HttpResponse) query;
-  lucky_draw : (LuckyDraw) -> ();
-  sell : (SellArgs) -> ();
+  lucky_draw : (LuckyDraw) -> (text);
+  sell : (SellArgs) -> (nat);
   withdraw : (text, WithdrawalType) -> (nat);
 }

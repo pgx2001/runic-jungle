@@ -1,0 +1,21 @@
+services:
+  bitcoind:
+    container_name: bitcoind
+    user: 1000:1000
+    image: lncm/bitcoind:v26.0
+    restart: on-failure
+    volumes:
+      - ./docker/bitcoin.conf:/data/.bitcoin/bitcoin.conf
+      - bitcoin_data:/data/.bitcoin
+    ports:
+      - "18443:18443" # Bitcoin RPC port
+      - "18444:18444" # Bitcoin P2P port
+    networks:
+      - bitcoin_network
+
+volumes:
+  bitcoin_data:
+  index_data:
+
+networks:
+  bitcoin_network:

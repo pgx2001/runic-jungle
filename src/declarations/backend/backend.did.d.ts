@@ -5,6 +5,7 @@ import type { IDL } from '@dfinity/candid';
 export type AgentBy = { 'Id' : bigint } |
   { 'Name' : string };
 export interface AgentDetails {
+  'current_winner' : [] | [Principal],
   'market_cap' : bigint,
   'ticker' : number,
   'current_prize_pool' : [bigint, bigint],
@@ -22,7 +23,14 @@ export interface AgentDetails {
   'total_supply' : bigint,
   'openchat' : [] | [string],
 }
-export interface BuyArgs { 'id' : AgentBy, 'min_amount_out' : bigint }
+export type BitcoinNetwork = { 'mainnet' : null } |
+  { 'regtest' : null } |
+  { 'testnet' : null };
+export interface BuyArgs {
+  'id' : AgentBy,
+  'amount_out_min' : bigint,
+  'buy_exact_in' : bigint,
+}
 export interface ChatArgs {
   'agent' : AgentBy,
   'session_id' : [] | [bigint],
@@ -50,8 +58,18 @@ export interface HttpResponse {
   'streaming_strategy' : [] | [StreamingStrategy],
   'status_code' : number,
 }
+export interface InitArgs {
+  'commission_receiver' : [] | [Principal],
+  'commission' : number,
+  'creation_fee' : bigint,
+  'bitcoin_network' : BitcoinNetwork,
+}
 export interface LuckyDraw { 'id' : AgentBy, 'message' : string }
-export interface SellArgs { 'id' : AgentBy, 'min_amount_out' : bigint }
+export interface SellArgs {
+  'id' : AgentBy,
+  'token_amount' : bigint,
+  'amount_collateral_min' : bigint,
+}
 export interface StreamingCallbackToken {
   'chunk_index' : number,
   'asset_id' : bigint,
@@ -69,15 +87,16 @@ export type WithdrawalType = {
   } |
   { 'Bitcoin' : { 'amount' : bigint } };
 export interface _SERVICE {
-  'buy' : ActorMethod<[BuyArgs], undefined>,
-  'chat' : ActorMethod<[ChatArgs], undefined>,
+  'buy' : ActorMethod<[BuyArgs], bigint>,
+  'chat' : ActorMethod<[ChatArgs], string>,
   'create_agent' : ActorMethod<[CreateAgentArgs], bigint>,
   'get_agent_of' : ActorMethod<[AgentBy], [] | [AgentDetails]>,
   'get_agents' : ActorMethod<[], Array<[bigint, AgentDetails]>>,
+  'get_balances' : ActorMethod<[], Array<[string, bigint]>>,
   'get_deposit_address' : ActorMethod<[], string>,
   'http_request' : ActorMethod<[HttpRequest], HttpResponse>,
-  'lucky_draw' : ActorMethod<[LuckyDraw], undefined>,
-  'sell' : ActorMethod<[SellArgs], undefined>,
+  'lucky_draw' : ActorMethod<[LuckyDraw], string>,
+  'sell' : ActorMethod<[SellArgs], bigint>,
   'withdraw' : ActorMethod<[string, WithdrawalType], bigint>,
 }
 export declare const idlFactory: IDL.InterfaceFactory;
