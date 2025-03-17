@@ -221,27 +221,20 @@ pub async fn create_agent(
     let bitcoin_address = bitcoin::account_to_p2pkh_address(&account);
 
     //get the balance
-    /* indexer::fetch_utxos_and_update(
+    indexer::fetch_utxos_and_update(
         &bitcoin_address,
         indexer::TargetType::Bitcoin { target: u64::MAX },
     )
-    .await; */
-
-    let bitcoin_balance = ic_cdk::api::management_canister::bitcoin::bitcoin_get_balance(
-        ic_cdk::api::management_canister::bitcoin::GetBalanceRequest {
-            address: bitcoin_address.clone(),
-            network: read_config(|config| config.bitcoin_network()),
-            min_confirmations: None,
-        },
-    )
-    .await
-    .unwrap()
-    .0;
+    .await;
 
     let bitcoin_balance = read_ledger_entries(|entries| {
         let entry = entries.get(&caller).unwrap_or_default();
+        let bitcoin_balance =
+            read_utxo_manager(|manager| manager.get_bitcoin_balance(&bitcoin_address));
         bitcoin_balance - entry.restricted_bitcoin_balance
     });
+
+    ic_cdk::println!("{}", bitcoin_balance);
 
     if bitcoin_balance < 30_000 {
         ic_cdk::trap("not enough balance")
@@ -309,10 +302,11 @@ pub async fn create_agent(
     })
     .await
     {
-        Err(_) => {
+        Err(required_balance) => {
             write_agents(|agents| {
                 agents.delete_agent(id);
             });
+            ic_cdk::println!("required balance: {}", required_balance);
             ic_cdk::trap("not enough balance")
         }
         Ok((handler, (commit, reveal))) => {
@@ -532,42 +526,6 @@ pub struct StreamingCallbackHttpResponse {
 }
 
 define_function!(pub CallbackFunc: () -> () query);
-
-/*
-fn get_agent_id(url: &str) -> u128 {
-    let url_split_by_path = url.split('/').collect::<Vec<&str>>();
-    let last_elem = url_split_by_path[url_split_by_path.len() - 1];
-    let first_elem: Vec<&str> = last_elem.split('?').collect();
-    let element = first_elem[0].trim().parse::<u128>().unwrap();
-    element
-}
-
-#[query]
-pub fn http_request(req: HttpRequest) -> HttpResponse {
-    let agent_id = get_agent_id(&req.url);
-    let not_found = HttpResponse {
-        body: b"Asset not Found".to_vec(),
-        status_code: 404,
-        headers: vec![],
-        streaming_strategy: None,
-    };
-    read_agents(|agents| match agents.mapping.get(&agent_id) {
-        None => not_found,
-        Some(agent) => match agent.logo {
-            None => not_found,
-            Some(image) => HttpResponse {
-                body: image.as_bytes().to_vec(),
-                status_code: 200,
-                headers: vec![HeaderField(
-                    "Content-Type".to_string(),
-                    "image/png".to_string(),
-                )],
-                streaming_strategy: None,
-            },
-        },
-    })
-}
-*/
 
 fn get_agent_id(url: &str) -> Option<u128> {
     let url_split_by_path: Vec<&str> = url.split('/').collect();
