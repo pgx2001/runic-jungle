@@ -7,6 +7,7 @@ mod tools;
 mod txn_handler;
 mod utils;
 
+use bitcoin::runestone::etch::EtchingArgs;
 use state::*;
 use std::collections::HashMap;
 
@@ -14,50 +15,77 @@ use candid::{CandidType, define_function};
 
 // re export
 use ::bitcoin as bitcoin_lib;
+use ic_cdk::api::management_canister::bitcoin::BitcoinNetwork;
 use ic_cdk::api::management_canister::ecdsa::EcdsaPublicKeyResponse as EcdsaPublicKey;
-use ic_cdk::api::management_canister::ecdsa::{
-    EcdsaKeyId, EcdsaPublicKeyArgument, ecdsa_public_key,
+use ic_cdk::api::management_canister::ecdsa::{EcdsaPublicKeyArgument, ecdsa_public_key};
+use ic_cdk::api::management_canister::schnorr::{
+    SchnorrPublicKeyArgument, SchnorrPublicKeyResponse as SchnorrPublicKey, schnorr_public_key,
 };
-use ic_cdk::api::management_canister::schnorr::SchnorrPublicKeyResponse as SchnorrPublicKey;
 use ic_cdk::{init, query, update};
 use serde::Deserialize;
 
-async fn lazy_ecdsa_setup() {
-    let ecdsa_keyid: EcdsaKeyId = read_config(|config| config.ecdsakeyid());
-    let ecdsa_response = ecdsa_public_key(EcdsaPublicKeyArgument {
-        canister_id: None,
+async fn lazy_ecdsa_schnorr_setup() {
+    let (ecdsakeyid, schnorrkeyid) =
+        read_config(|config| (config.ecdsakeyid(), config.schnorrkeyid()));
+    let ecdsapublickey = ecdsa_public_key(EcdsaPublicKeyArgument {
         derivation_path: vec![],
-        key_id: ecdsa_keyid,
+        canister_id: None,
+        key_id: ecdsakeyid,
     })
     .await
-    .expect("Failed to get ecdsa key")
+    .unwrap()
     .0;
-
+    let schnorrpublickey = schnorr_public_key(SchnorrPublicKeyArgument {
+        derivation_path: vec![],
+        canister_id: None,
+        key_id: schnorrkeyid,
+    })
+    .await
+    .unwrap()
+    .0;
     write_config(|config| {
         let mut temp = config.get().clone();
-        temp.ecdsa_public_key = Some(ecdsa_response);
-        let _ = config.set(temp);
+        temp.ecdsa_public_key.replace(ecdsapublickey);
+        temp.schnorr_public_key.replace(schnorrpublickey);
+        config.set(temp).expect("failed to set config");
     });
 }
 
 #[derive(CandidType, Deserialize)]
 pub struct InitArgs {
+    pub bitcoin_network: BitcoinNetwork,
     pub creation_fee: u64,
     pub commission: u16,
-    pub commission_receiver: String,
+    pub commission_receiver: Option<candid::Principal>,
 }
 
+#[init]
 pub fn init(
     InitArgs {
+        bitcoin_network,
         creation_fee,
         commission,
         commission_receiver,
     }: InitArgs,
 ) {
     let caller = ic_cdk::caller();
-    // TODO: config initialization
+    let commission_receiver = commission_receiver.unwrap_or(caller);
+    let keyname = match bitcoin_network {
+        BitcoinNetwork::Mainnet => "key_1".to_string(),
+        BitcoinNetwork::Testnet => "test_key_1".to_string(),
+        BitcoinNetwork::Regtest => "dfx_test_key".to_string(),
+    };
+    write_config(|config| {
+        let mut temp = config.get().clone();
+        temp.keyname = keyname;
+        temp.bitcoin_network = bitcoin_network;
+        temp.commission_receiver = commission_receiver;
+        temp.creation_fee = creation_fee;
+        temp.commission = commission;
+        config.set(temp).expect("failed to set config");
+    });
     ic_cdk_timers::set_timer(std::time::Duration::from_secs(5), || {
-        ic_cdk::spawn(lazy_ecdsa_setup())
+        ic_cdk::spawn(lazy_ecdsa_schnorr_setup())
     });
 }
 
@@ -71,6 +99,36 @@ pub fn get_deposit_address() -> String {
     let caller = ic_cdk::caller();
     let account = utils::get_account_for(&caller);
     bitcoin::account_to_p2pkh_address(&account)
+}
+
+#[query(composite = true)]
+pub async fn get_balances() -> HashMap<String, u128> {
+    let caller = ic_cdk::caller();
+    let account = utils::get_account_for(&caller);
+    let bitcoin_address = bitcoin::account_to_p2pkh_address(&account);
+    let bitcoin_balance = ic_cdk::api::management_canister::bitcoin::bitcoin_get_balance(
+        ic_cdk::api::management_canister::bitcoin::GetBalanceRequest {
+            address: bitcoin_address,
+            network: read_config(|config| config.bitcoin_network()),
+            min_confirmations: None,
+        },
+    )
+    .await
+    .unwrap()
+    .0;
+    read_ledger_entries(|entries| {
+        let entry = entries.get(&caller).unwrap_or_default();
+        let mut map = HashMap::new();
+        map.insert(
+            String::from("Bitcoin"),
+            bitcoin_balance as u128 - entry.restricted_bitcoin_balance as u128,
+        );
+        for (rune, (_, balance)) in entry.ledger_entries {
+            let rune = read_agents(|agents| agents.mapping.get(&rune).unwrap().name);
+            map.insert(rune, balance);
+        }
+        map
+    })
 }
 
 #[derive(CandidType, Deserialize)]
@@ -101,17 +159,21 @@ pub struct AgentDetails {
     pub holders: u32,
     pub market_cap: u64,
     pub current_prize_pool: (u64, u128),
+    pub current_winner: Option<candid::Principal>,
     pub txns: (Option<String>, Option<String>),
 }
 
 #[query]
 pub fn get_agents() -> HashMap<u128, AgentDetails> {
-    todo!()
+    read_agents(|agents| agents.get_agents())
 }
 
 #[query]
 pub fn get_agent_of(id: AgentBy) -> Option<AgentDetails> {
-    todo!()
+    read_agents(|agents| {
+        let id = agents.find_agent_id(id)?;
+        agents.get_agent_of(id)
+    })
 }
 
 #[derive(CandidType, Deserialize)]
@@ -143,11 +205,103 @@ pub async fn create_agent(
     let account = utils::get_account_for(&caller);
     let bitcoin_address = bitcoin::account_to_p2pkh_address(&account);
 
-    // TODO: get the balance
-    // TODO: calculate the fee
-    // TODO: Store the agent
-    // TODO: start the submission timer
-    todo!()
+    //get the balance
+    indexer::fetch_utxos_and_update(
+        &bitcoin_address,
+        indexer::TargetType::Bitcoin { target: u64::MAX },
+    )
+    .await;
+
+    let bitcoin_balance = read_ledger_entries(|entries| {
+        let entry = entries.get(&caller).unwrap_or_default();
+        let balance = read_utxo_manager(|manager| manager.get_bitcoin_balance(&bitcoin_address));
+        balance - entry.restricted_bitcoin_balance
+    });
+
+    if bitcoin_balance < 30_000 {
+        ic_cdk::trap("not enough balance")
+    }
+
+    let (spaced_rune, total_supply, symbol) =
+        bitcoin::runestone::validate_etching(&name, ticker, 3, 1_000_000)
+            .expect("Etching Arg validation failed");
+
+    // checking if rune is occupied
+    if indexer::runes_indexer::get_rune(spaced_rune.to_string())
+        .await
+        .is_some()
+    {
+        ic_cdk::trap("Rune already taken")
+    }
+
+    let secret = llm::Llm::generate_secret_word(&spaced_rune.to_string(), &description).await;
+    ic_cdk::println!("secret word: {}", secret);
+
+    let (id, (logo_url, agent_address)) = write_agents(|agents| {
+        let id = agents.get_agent_id();
+        let allocated_raw_subaccount = utils::generate_subaccount_for_agent(id);
+        let resp = agents.create_agent(
+            id,
+            caller,
+            allocated_raw_subaccount,
+            secret,
+            spaced_rune.to_string(),
+            symbol.unwrap_or('•') as u32,
+            logo,
+            description,
+            website,
+            twitter,
+            openchat,
+            discord,
+            total_supply,
+        );
+        (id, resp)
+    });
+
+    let (content_type, logo) = match logo_url {
+        None => (None, None),
+        Some(logo) => (
+            Some(String::from("text/html").as_bytes().to_vec()),
+            Some(logo.as_bytes().to_vec()),
+        ),
+    };
+
+    let fee_payer = bitcoin::address_validation(&bitcoin_address).unwrap();
+    let agent_address = bitcoin::address_validation(&agent_address).unwrap();
+
+    let handler = match bitcoin::runestone::etch::etch(EtchingArgs {
+        reveal_address: agent_address,
+        logo,
+        content_type,
+        spaced_rune,
+        premine: total_supply,
+        divisibility: 3,
+        symbol,
+        turbo: true,
+        fee_payer,
+        fee_per_vbytes: 1_000,
+        fee_payer_account: account,
+    })
+    .await
+    {
+        Err(_) => {
+            write_agents(|agents| {
+                agents.delete_agent(id);
+            });
+            ic_cdk::trap("not enough balance")
+        }
+        Ok((handler, (commit, reveal))) => {
+            write_agents(|agents| {
+                let mut agent = agents.mapping.get(&id).expect("should exist");
+                agent.txns.0.replace(commit);
+                agent.txns.1.replace(reveal);
+            });
+            handler
+        }
+    };
+
+    handler.submit().await;
+    id
 }
 
 #[derive(CandidType, Deserialize)]
@@ -159,27 +313,96 @@ pub enum AgentBy {
 #[derive(CandidType, Deserialize)]
 pub struct BuyArgs {
     pub id: AgentBy,
-    pub min_amount_out: u128,
+    pub buy_exact_in: u64,
+    pub amount_out_min: u128,
 }
 
 #[update]
-pub fn buy(BuyArgs { id, min_amount_out }: BuyArgs) {
+pub async fn buy(
+    BuyArgs {
+        id,
+        buy_exact_in,
+        amount_out_min,
+    }: BuyArgs,
+) -> u128 {
     let caller = ic_cdk::caller();
     let account = utils::get_account_for(&caller);
     let bitcoin_address = bitcoin::account_to_p2pkh_address(&account);
+    indexer::fetch_utxos_and_update(
+        &bitcoin_address,
+        indexer::TargetType::Bitcoin { target: u64::MAX },
+    )
+    .await;
+    let bitcoin_balance = read_ledger_entries(|entries| {
+        let entry = entries.get(&caller).unwrap_or_default();
+        let balance = read_utxo_manager(|manager| manager.get_bitcoin_balance(&bitcoin_address));
+        balance - entry.restricted_bitcoin_balance
+    });
+    if buy_exact_in > bitcoin_balance {
+        ic_cdk::trap("not enough balance")
+    }
+    let (id, amount) = write_agents(|agents| {
+        let id = agents.find_agent_id(id).expect("invalid agent id");
+        let mut agent = agents.mapping.get(&id).unwrap();
+        let amount = agent
+            .buy_exact_in(buy_exact_in as u128, amount_out_min)
+            .unwrap();
+        agents.mapping.insert(id, agent);
+        (id, amount)
+    });
+    write_ledger_entries(|entries| {
+        let mut entry = entries.get(&caller).unwrap_or_default();
+        entry.record_agent_owned_balance(id, buy_exact_in);
+        entry.record_rune_balance(id, amount);
+        entries.insert(caller, entry);
+    });
+    amount
 }
 
 #[derive(CandidType, Deserialize)]
 pub struct SellArgs {
     pub id: AgentBy,
-    pub min_amount_out: u64,
+    pub token_amount: u128,
+    pub amount_collateral_min: u64,
 }
 
 #[update]
-pub fn sell(SellArgs { id, min_amount_out }: SellArgs) {
+pub fn sell(
+    SellArgs {
+        id,
+        token_amount,
+        amount_collateral_min,
+    }: SellArgs,
+) -> u128 {
     let caller = ic_cdk::caller();
-    let account = utils::get_account_for(&caller);
-    let bitcoin_address = bitcoin::account_to_p2pkh_address(&account);
+    let id = read_agents(|agents| agents.find_agent_id(id)).expect("invalid agent");
+    let rune_balance = read_ledger_entries(|entries| {
+        entries
+            .get(&caller)
+            .unwrap_or_default()
+            .ledger_entries
+            .get(&id)
+            .copied()
+            .unwrap_or_default()
+            .1
+    });
+    if token_amount > rune_balance {
+        ic_cdk::trap("not enough balance")
+    }
+    let bitcoin = write_agents(|agents| {
+        let mut agent = agents.mapping.get(&id).unwrap();
+        let bitcoin = agent
+            .sell_exact_in(token_amount, amount_collateral_min as u128)
+            .unwrap();
+        agents.mapping.insert(id, agent);
+        bitcoin
+    });
+    write_ledger_entries(|entries| {
+        let mut entry = entries.get(&caller).unwrap_or_default();
+        entry.deduct_rune_balance(id, token_amount);
+        entry.deduct_agent_owned_balance(id, bitcoin as u64);
+    });
+    bitcoin
 }
 
 #[derive(CandidType, Deserialize)]
@@ -189,10 +412,21 @@ pub struct LuckyDraw {
 }
 
 #[update]
-pub fn lucky_draw(LuckyDraw { id, message }: LuckyDraw) {
+pub fn lucky_draw(LuckyDraw { id, message }: LuckyDraw) -> String {
     let caller = ic_cdk::caller();
-    let account = utils::get_account_for(&caller);
-    let bitcoin_address = bitcoin::account_to_p2pkh_address(&account);
+    write_agents(|agents| {
+        let id = agents.find_agent_id(id).expect("agent doesn't exist");
+        let mut agent = agents.mapping.get(&id).unwrap();
+        if agent.current_winner.is_some() {
+            return String::from("Contest not started");
+        }
+        if Some(message) == agent.secret {
+            agent.current_winner.replace(caller);
+            String::from("Congratulation")
+        } else {
+            String::from("Better luck next time")
+        }
+    })
 }
 
 #[derive(CandidType, Deserialize)]
@@ -203,17 +437,21 @@ pub struct ChatArgs {
 }
 
 #[update]
-pub fn chat(
+pub async fn chat(
     ChatArgs {
         agent,
         session_id,
         message,
     }: ChatArgs,
-) {
+) -> String {
     let caller = ic_cdk::caller();
-    let session_id = session_id
-        .unwrap_or_else(|| write_chat_session(|session| session.start_new_session(caller.clone())));
-    todo!()
+    let agent_id = read_agents(|agents| agents.find_agent_id(agent)).expect("agent doesn't exist");
+    let session_id = session_id.unwrap_or_else(|| {
+        write_chat_session(|session| session.start_new_session(agent_id, caller.clone()))
+    });
+    let account = utils::get_account_for(&caller);
+    let user_bitcoin_address = bitcoin::account_to_p2pkh_address(&account);
+    llm::Llm::chat(session_id, agent_id, user_bitcoin_address, message).await
 }
 
 #[derive(CandidType, Deserialize, Clone)]
@@ -266,8 +504,25 @@ pub struct StreamingCallbackHttpResponse {
 
 define_function!(pub CallbackFunc: () -> () query);
 
+fn get_agent_id(url: &str) -> u128 {
+    let url_split_by_path = url.split('/').collect::<Vec<&str>>();
+    let last_elem = url_split_by_path[url_split_by_path.len() - 1];
+    let first_elem: Vec<&str> = last_elem.split('?').collect();
+    let element = first_elem[0].trim().parse::<u128>().unwrap();
+    element
+}
+
 #[query]
 pub fn http_request(req: HttpRequest) -> HttpResponse {
+    /* let agent_id = get_agent_id(&req.url);
+    read_agents(|agents| match agents.mapping.get(&agent_id) {
+        None => HttpResponse {
+            body: b"Asset not Found".to_vec(),
+            status_code: 404,
+            headers: vec![],
+            streaming_strategy: None,
+        },
+    }) */
     todo!()
 }
 

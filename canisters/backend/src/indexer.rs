@@ -51,7 +51,7 @@ impl FromStr for RuneId {
     }
 }
 
-mod runes_indexer {
+pub mod runes_indexer {
     use candid::Principal;
     use runes_indexer_interface::{Error, RuneBalance, RuneEntry};
 
