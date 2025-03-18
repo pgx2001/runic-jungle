@@ -10,19 +10,22 @@ export default function Chatbox({ wallet, agent }) {
   const chatEndRef = useRef(null);
 
   useEffect(() => {
+    console.log("called to create session id")
     const initializeChat = async () => {
       try {
         const agentInstance = await HttpAgent.create({ identity: wallet });
         const backend = createActor(canisterId, { agent: agentInstance });
 
+        console.log("calling for new session id")
         const newSessionId = await backend.create_chat_session({ 'Id': agent });
+        console.log("session id:", newSessionId)
         setSessionId(newSessionId);
       } catch (error) {
         console.error('Error initializing chat:', error);
       }
     };
 
-    if (wallet && agent) {
+    if (wallet) {
       initializeChat();
     }
   }, [wallet, agent]);
@@ -34,11 +37,13 @@ export default function Chatbox({ wallet, agent }) {
       const agentInstance = await HttpAgent.create({ identity: wallet });
       const backend = createActor(canisterId, { agent: agentInstance });
 
+      console.log("calling chat")
       const response = await backend.chat({
         agent: { 'Id': agent },
         session_id: sessionId,
         message: input,
       });
+      console.log("response: ", response)
 
       setMessages((prev) => [...prev, { sender: 'You', text: input }, { sender: 'AI', text: response }]);
       setInput('');
@@ -67,7 +72,7 @@ export default function Chatbox({ wallet, agent }) {
         onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
         placeholder="Type a message..."
       />
-      <button onClick={sendMessage}>Send</button>
+      <button onClick={() => { sendMessage() }}>Send</button>
     </div>
   );
 }

@@ -245,12 +245,12 @@ pub async fn create_agent(
             .expect("Etching Arg validation failed");
 
     // checking if rune is occupied
-    /* if indexer::runes_indexer::get_rune(spaced_rune.to_string())
+    if indexer::runes_indexer::get_rune(spaced_rune.to_string())
         .await
         .is_some()
     {
         ic_cdk::trap("Rune already taken")
-    } */
+    }
 
     let secret = llm::Llm::generate_secret_word(&spaced_rune.to_string(), &description).await;
     ic_cdk::println!("secret word: {}", secret);
@@ -366,6 +366,7 @@ pub async fn buy(
         let amount = agent
             .buy_exact_in(buy_exact_in as u128, amount_out_min)
             .unwrap();
+        agent.balances.insert(caller.to_text());
         agents.mapping.insert(id, agent);
         (id, amount)
     });
@@ -420,6 +421,7 @@ pub fn sell(
         let mut entry = entries.get(&caller).unwrap_or_default();
         entry.deduct_rune_balance(id, token_amount);
         entry.deduct_agent_owned_balance(id, bitcoin as u64);
+        entries.insert(caller, entry);
     });
     bitcoin
 }

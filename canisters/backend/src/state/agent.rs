@@ -70,7 +70,7 @@ impl AgentDetail {
         let canister_id = ic_cdk::id();
         let url = if localhost {
             format!(
-                "http://{canister_id}.localhost:4943/agent/{}",
+                "http://{canister_id}.raw.localhost:4943/agent/{}",
                 self.agent_id
             )
         } else {
@@ -511,13 +511,4 @@ impl AgentState {
     pub fn get_agent_of(&self, id: u128) -> Option<crate::AgentDetails> {
         self.mapping.get(&id).map(|detail| detail.agent_query())
     }
-
-    pub fn get_amount_out_and_fee(&self) {}
-
-    pub fn buy(&mut self, id: u128, min_tokens_out: u128) -> u128 {
-        let mut agent = self.mapping.get(&id).expect("doesn't exist");
-        todo!()
-    }
-
-    pub fn sell(&mut self, id: u128) {}
 }

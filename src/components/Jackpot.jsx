@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { HttpAgent } from "@dfinity/agent";
 import { createActor, canisterId } from "../declarations/backend/index";

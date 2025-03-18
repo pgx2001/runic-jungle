@@ -72,7 +72,7 @@ export default function Agent({
         );
       case "chat":
         return (
-          <Chatbox wallet={wallet} agent={agentData.agent_id} />
+          <Chatbox wallet={wallet} agent={id} />
         );
       default:
         return null;
@@ -120,19 +120,19 @@ export default function Agent({
       </div>
       <div className="tabs">
         <button
-          className={selectedTab === "market" ? "tab active" : "tab"}
+          className={`tab market ${selectedTab === "market" ? "active" : ""}`}
           onClick={() => setSelectedTab("market")}
         >
           Market
         </button>
         <button
-          className={selectedTab === "jackpot" ? "tab active" : "tab"}
+          className={`tab jackpot ${selectedTab === "jackpot" ? "active" : ""}`}
           onClick={() => setSelectedTab("jackpot")}
         >
           Hit The Jackpot
         </button>
         <button
-          className={selectedTab === "chat" ? "tab active" : "tab"}
+          className={`tab chat ${selectedTab === "chat" ? "active" : ""}`}
           onClick={() => setSelectedTab("chat")}
         >
           Chat with Bot
