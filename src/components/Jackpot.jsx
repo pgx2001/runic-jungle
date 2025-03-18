@@ -49,7 +49,7 @@ export default function Jackpot({
     <div className="jackpot">
       <h1 className="title">Bait the Bot</h1>
 
-      {current_winner ? (
+      {current_winner[0] ? (
         <div className="winner-message">
           Jackpot already claimed by user: {current_winner}
         </div>

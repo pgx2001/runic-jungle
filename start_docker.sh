@@ -16,3 +16,5 @@ docker compose exec bitcoind bitcoin-cli -regtest -generate 1
 
 # Start the ord service. It'll be available at localhost:8080
 docker compose up ord -d
+
+# docker compose up idempotent-proxy -d

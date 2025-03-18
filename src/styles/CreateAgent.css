@@ -17,15 +17,18 @@
 
 .modal-overlay {
   position: fixed;
-  top: 10%;
+  top: 0;
   left: 0;
   width: 100%;
-  height: 80%;
+  height: 100%;
+  /* Keep full height to allow centering */
   background: rgba(0, 0, 0, 0.6);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 1000;
+  overflow: hidden;
+  /* Prevent unnecessary scrolling */
 }
 
 .modal {
@@ -34,6 +37,10 @@
   border-radius: 15px;
   width: 600px;
   max-width: 90%;
+  max-height: 80vh;
+  /* Limit modal height */
+  overflow-y: auto;
+  /* Enable scrolling when needed */
   display: flex;
   flex-direction: column;
   gap: 20px;

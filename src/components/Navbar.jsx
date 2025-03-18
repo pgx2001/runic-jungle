@@ -30,7 +30,7 @@ export default function Navbar({
       const bitcoin_balance = await backend.get_bitcoin_balance();
 
       setBitcoinAddress(bitcoin_address);
-      setBitcoinBalance(bitcoin_balance);
+      setBitcoinBalance(Number(bitcoin_balance) / 10 ** 8);
     } catch (error) {
       console.error("Error fetching Bitcoin data:", error);
       setWarningMessage("Failed to fetch Bitcoin data");

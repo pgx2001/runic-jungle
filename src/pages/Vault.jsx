@@ -52,7 +52,7 @@ export default function Vault({
       return "Invalid balance"; // Handle invalid balances gracefully
     }
 
-    return lowerName === "bitcoin" ? numericBalance.toFixed(8) : numericBalance.toFixed(3);
+    return lowerName === "bitcoin" ? numericBalance / 10 ** 8 : numericBalance / 10 ** 3;
   };
 
   return (
