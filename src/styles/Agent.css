@@ -42,62 +42,52 @@
 .tabs {
   display: flex;
   align-items: center;
+  justify-content: center;
+  height: auto;
+  margin: auto;
+  /* Center the tabs horizontally */
   gap: 0;
+  /* No gap between tabs */
   margin-bottom: 20px;
-  /* Space between tabs */
 }
 
 .tab {
   padding: 10px 20px;
   border: none;
-  border-radius: 5px;
   cursor: pointer;
   font-size: 16px;
   transition: background-color 0.3s ease, transform 0.2s ease;
   margin: 0;
-  /* Reset margin on tabs */
+  background-color: #2196f3;
+  color: orange;
+}
+
+/* Remove border radius from middle buttons to make them appear connected */
+.tab:not(:first-child):not(:last-child) {
+  border-radius: 0;
+}
+
+/* Only round the left corners of the first tab */
+.tab:first-child {
+  border-radius: 5px 0 0 5px;
+}
+
+/* Only round the right corners of the last tab */
+.tab:last-child {
+  border-radius: 0 5px 5px 0;
 }
 
 .tab:hover {
-  background-color: #d4d4d4;
-  transform: scale(1.05);
-}
-
-
-/* Different Tab Colors */
-.tab.market {
-  background-color: #4caf50;
-  /* Green */
-}
-
-.tab.jackpot {
-  background-color: #ff9800;
-  /* Orange */
-}
-
-.tab.chat {
-  background-color: #2196f3;
-  /* Blue */
-}
-
-/* Active Tab Colors */
-.tab.market.active {
-  background-color: #388e3c;
-  /* Dark Green */
-}
-
-.tab.jackpot.active {
-  background-color: #f57c00;
-  /* Dark Orange */
-}
-
-.tab.chat.active {
   background-color: #1976d2;
-  /* Dark Blue */
+  /* Slightly darker on hover */
+  transform: scale(1.05);
+  /* Preserved glowing effect */
 }
 
+/* Active Tab Color */
 .tab.active {
-  background-color: #007bff;
+  background-color: #0d47a1;
+  /* Darker blue for active tab */
   color: #fff;
   font-weight: bold;
 }

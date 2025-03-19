@@ -20,6 +20,7 @@ pub struct Config {
     pub ecdsa_public_key: Option<EcdsaPublicKey>,
     pub schnorr_public_key: Option<SchnorrPublicKey>,
     pub keyname: String,
+    pub allowed_agent_count: u128,
 }
 
 impl Default for Config {
@@ -33,6 +34,7 @@ impl Default for Config {
             ecdsa_public_key: None,
             schnorr_public_key: None,
             keyname: String::from("dfx_test_key"),
+            allowed_agent_count: 100,
         }
     }
 }

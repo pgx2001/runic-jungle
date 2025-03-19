@@ -120,19 +120,19 @@ export default function Agent({
       </div>
       <div className="tabs">
         <button
-          className={`tab market ${selectedTab === "market" ? "active" : ""}`}
+          className={`tab  ${selectedTab === "market" ? "active" : ""}`}
           onClick={() => setSelectedTab("market")}
         >
           Market
         </button>
         <button
-          className={`tab jackpot ${selectedTab === "jackpot" ? "active" : ""}`}
+          className={`tab ${selectedTab === "jackpot" ? "active" : ""}`}
           onClick={() => setSelectedTab("jackpot")}
         >
           Hit The Jackpot
         </button>
         <button
-          className={`tab chat ${selectedTab === "chat" ? "active" : ""}`}
+          className={`tab  ${selectedTab === "chat" ? "active" : ""}`}
           onClick={() => setSelectedTab("chat")}
         >
           Chat with Bot

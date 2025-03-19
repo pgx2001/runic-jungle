@@ -21,8 +21,8 @@ use crate::{
     bitcoin::{DUST_THRESHOLD, signer::ecdsa::ecdsa_sign, utils::*},
     indexer::RuneId,
     state::{
-        queue::ScheduledTransaction, read_config, utxo_manager::RunicUtxo, write_scheduled_state,
-        write_utxo_manager,
+        queue::ScheduledTransaction, read_agents, read_config, utxo_manager::RunicUtxo,
+        write_agents, write_scheduled_state, write_utxo_manager,
     },
 };
 
@@ -33,6 +33,7 @@ pub enum SubmittedTxidType {
 
 pub enum TransactionType {
     Etching {
+        agent_id: u128,
         commit_tx_address: Address,
         commit: Transaction,
         reveal: Transaction,
@@ -82,6 +83,7 @@ impl TransactionType {
     pub async fn submit(self) -> SubmittedTxidType {
         match self {
             Self::Etching {
+                agent_id,
                 commit_tx_address,
                 commit,
                 reveal,
@@ -118,6 +120,7 @@ impl TransactionType {
                     state.record_txn(
                         id,
                         ScheduledTransaction {
+                            agent_id,
                             txn: reveal,
                             commit_tx_address: commit_tx_address.to_string(),
                             timer_id: timer_id.data(),
@@ -713,5 +716,28 @@ async fn submit_txn(id: u128) {
     } else {
         ic_cdk::println!("transaction was submitted");
         ic_cdk_timers::clear_timer(txn.timer_id.into());
+        // starting another timer to get the runeid
+        ic_cdk_timers::set_timer(Duration::from_secs(10 * 60), move || {
+            ic_cdk::spawn(get_runeid(txn.agent_id))
+        });
+    }
+}
+
+async fn get_runeid(id: u128) {
+    let runename = read_agents(|agents| {
+        let agent = agents.mapping.get(&id).expect("should exist");
+        agent.name
+    });
+    match crate::indexer::runes_indexer::get_rune(runename).await {
+        None => {
+            ic_cdk_timers::set_timer(Duration::from_secs(10 * 60), move || {
+                ic_cdk::spawn(get_runeid(id))
+            });
+        }
+        Some(entry) => write_agents(|agents| {
+            let mut agent = agents.mapping.get(&id).expect("should exist");
+            agent.runeid.replace(entry.rune_id);
+            agents.mapping.insert(id, agent);
+        }),
     }
 }

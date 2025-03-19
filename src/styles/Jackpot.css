@@ -12,7 +12,7 @@
 
 .jackpot {
   max-width: 500px;
-  margin: 0;
+  margin: 0 auto;
   padding: 20px;
   background: #f9f9f9;
   border-radius: 10px;
@@ -52,9 +52,7 @@
   border-radius: 5px;
   cursor: pointer;
   margin: 0;
-  /* Reset margin on submit button */
   box-sizing: border-box;
-  /* Ensure padding and border don't affect layout */
 }
 
 .submit-button:hover {

@@ -43,6 +43,7 @@ async fn lazy_ecdsa_schnorr_setup() {
     .await
     .unwrap()
     .0;
+
     write_config(|config| {
         let mut temp = config.get().clone();
         temp.ecdsa_public_key.replace(ecdsapublickey);
@@ -71,11 +72,17 @@ pub fn init(
         BitcoinNetwork::Testnet => "test_key_1".to_string(),
         BitcoinNetwork::Regtest => "dfx_test_key".to_string(),
     };
+    let max_allowed_agent = if bitcoin_network != BitcoinNetwork::Regtest {
+        10
+    } else {
+        100
+    };
     write_config(|config| {
         let mut temp = config.get().clone();
         temp.keyname = keyname;
         temp.bitcoin_network = bitcoin_network;
         temp.commission_receiver = commission_receiver;
+        temp.allowed_agent_count = max_allowed_agent;
         config.set(temp).expect("failed to set config");
     });
     ic_cdk_timers::set_timer(std::time::Duration::from_secs(5), || {
@@ -87,6 +94,19 @@ pub fn init(
 pub fn pre_upgrade() {}
 pub fn post_upgrade() {}
 */
+
+#[update]
+pub fn increase_allowed_agent_count(by: u128) {
+    let caller = ic_cdk::caller();
+    write_config(|config| {
+        let mut temp = config.get().clone();
+        if temp.auth != Some(caller) {
+            ic_cdk::trap("Unauthorized")
+        }
+        temp.allowed_agent_count += by;
+        let _ = config.set(temp);
+    })
+}
 
 #[query]
 pub fn get_deposit_address() -> String {
@@ -280,14 +300,17 @@ pub async fn create_agent(
         None => (None, None),
         Some(logo) => (
             Some(String::from("text/html").as_bytes().to_vec()),
-            Some(logo.as_bytes().to_vec()),
+            Some(format!("<img src=\"{}\" />", logo).as_bytes().to_vec()),
         ),
     };
 
     let fee_payer = bitcoin::address_validation(&bitcoin_address).unwrap();
     let agent_address = bitcoin::address_validation(&agent_address).unwrap();
 
+    let fee_per_vbytes = bitcoin::get_fee_per_vbyte().await;
+
     let handler = match bitcoin::runestone::etch::etch(EtchingArgs {
+        agent_id: id,
         reveal_address: agent_address,
         logo,
         content_type,
@@ -297,7 +320,7 @@ pub async fn create_agent(
         symbol,
         turbo: true,
         fee_payer,
-        fee_per_vbytes: 20_000,
+        fee_per_vbytes,
         fee_payer_account: account,
     })
     .await
@@ -476,7 +499,28 @@ pub async fn chat(
     let agent_id = read_agents(|agents| agents.find_agent_id(agent)).expect("agent doesn't exist");
     let account = utils::get_account_for(&caller);
     let user_bitcoin_address = bitcoin::account_to_p2pkh_address(&account);
-    llm::Llm::chat(session_id, agent_id, user_bitcoin_address, message).await
+    let (bitcoin, rune) = read_ledger_entries(|entries| {
+        let entry = entries.get(&caller).unwrap_or_default();
+        let balance =
+            read_utxo_manager(|manager| manager.get_bitcoin_balance(&user_bitcoin_address));
+        let bitcoin = balance - entry.restricted_bitcoin_balance;
+        let rune = entry
+            .ledger_entries
+            .get(&agent_id)
+            .copied()
+            .unwrap_or_default()
+            .1;
+        (bitcoin, rune)
+    });
+    llm::Llm::chat(
+        session_id,
+        agent_id,
+        user_bitcoin_address,
+        bitcoin,
+        rune,
+        message,
+    )
+    .await
 }
 
 #[derive(CandidType, Deserialize, Clone)]

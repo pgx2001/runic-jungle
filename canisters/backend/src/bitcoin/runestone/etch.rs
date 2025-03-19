@@ -77,6 +77,7 @@ fn build_reveal_transaction(
 }
 
 pub struct EtchingArgs {
+    pub agent_id: u128,
     pub reveal_address: Address,
     pub logo: Option<Vec<u8>>,
     pub content_type: Option<Vec<u8>>,
@@ -95,6 +96,7 @@ pub struct EtchingArgs {
 // only commit transaction is needed to by signed!
 pub async fn etch(
     EtchingArgs {
+        agent_id,
         reveal_address,
         logo,
         content_type,
@@ -124,7 +126,6 @@ pub async fn etch(
     };
 
     if premine > 0 {
-        // let output = reveal_output.len() as u32;
         reveal_output.push(TxOut {
             script_pubkey: reveal_address.script_pubkey(),
             value: TARGET_POSTAGE,
@@ -303,6 +304,7 @@ pub async fn etch(
     let reveal_txid = reveal_txn.compute_txid().to_string();
     Ok((
         TransactionType::Etching {
+            agent_id,
             commit_tx_address,
             commit: commit_txn,
             reveal: reveal_txn,

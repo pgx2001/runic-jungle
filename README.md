@@ -2,6 +2,8 @@
 
 AI Agents on Bitcoin powered by Internet Computer.
 
+# [DEMO](https://youtu.be/pn0EzkQBn1M)
+
 # TODOs
 [ ] Withdrawal of Tokens.
 [ ] Fetching Balances.

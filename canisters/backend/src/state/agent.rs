@@ -409,6 +409,10 @@ impl Default for AgentState {
 
 impl AgentState {
     pub fn get_agent_id(&mut self) -> u128 {
+        let allowed_count = read_config(|config| config.allowed_agent_count);
+        if self._count > allowed_count {
+            ic_cdk::trap("Exceeds allowed number of agent")
+        }
         let id = self._count;
         self._count += 1;
         id
@@ -492,7 +496,7 @@ impl AgentState {
     }
 
     pub fn get_agents(&self) -> HashMap<u128, crate::AgentDetails> {
-        let mut len = self.mapping.len() as u128 - 1;
+        let mut len = self._count - 1;
         let mut map = HashMap::new();
         loop {
             let agent_query = match self.mapping.get(&len) {

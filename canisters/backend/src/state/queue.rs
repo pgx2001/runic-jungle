@@ -7,6 +7,7 @@ use super::{CanisterMemory, CanisterMemoryIds, read_memory_manager};
 
 #[derive(Serialize, Deserialize)]
 pub struct ScheduledTransaction {
+    pub agent_id: u128,
     pub commit_tx_address: String,
     pub txn: Transaction,
     pub timer_id: KeyData,
