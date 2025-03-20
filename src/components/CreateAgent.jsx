@@ -1,10 +1,9 @@
-
 import React, { useState } from "react";
 import { HttpAgent } from "@dfinity/agent";
 import { createActor, canisterId } from "../declarations/backend/index";
 import "./../styles/CreateAgent.css";
 
-export default function CreateAgent({ wallet }) {
+export default function CreateAgent({ wallet, setWarningMessage }) {
   const [isOpen, setIsOpen] = useState(false);
   const [formData, setFormData] = useState({
     ticker: "",
@@ -16,7 +15,6 @@ export default function CreateAgent({ wallet }) {
     discord: "",
     openchat: "",
   });
-  const [error, setError] = useState("");
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -26,10 +24,10 @@ export default function CreateAgent({ wallet }) {
     const file = e.target.files[0];
     if (file) {
       if (file.size > 1.2 * 1024 * 1024) {
-        setError("File size must be under 1.2MB");
+        setWarningMessage("File size must be under 1.2MB");
         return;
       }
-      setError("");
+      setWarningMessage(null);
       const reader = new FileReader();
       reader.onloadend = () => {
         setFormData({ ...formData, logo: reader.result });
@@ -54,8 +52,17 @@ export default function CreateAgent({ wallet }) {
       });
       setIsOpen(false);
     } catch (error) {
-      console.error("Failed to create agent:", error);
-      setError("Failed to create agent. Please try again.");
+      setIsOpen(false);
+      const errorString = error.toString();
+
+      // Use a regex to extract the reject message inside single quotes after "with message:"
+      const match = errorString.match(/with message:\s*'([^']+)'/);
+
+      // If a match is found, use it; otherwise fallback to the entire error string
+      const rejectMessage = match ? match[1] : errorString;
+
+      setWarningMessage(rejectMessage);
+      console.error("Extracted reject message:", rejectMessage);
     }
   };
 
@@ -66,7 +73,6 @@ export default function CreateAgent({ wallet }) {
         <div className="modal-overlay">
           <div className="modal">
             <h2>Create Agent</h2>
-            {error && <p className="error">{error}</p>}
             <input type="text" name="name" placeholder="Name" onChange={handleChange} required />
             <input type="text" name="ticker" placeholder="Ticker (optional)" onChange={handleChange} />
             <input type="text" name="twitter" placeholder="Twitter (optional)" onChange={handleChange} />

@@ -74,7 +74,7 @@ impl AgentDetail {
                 self.agent_id
             )
         } else {
-            format!("https://{canister_id}.raw.ic0.app/asset/{}", self.agent_id)
+            format!("https://{canister_id}.ic0.app/agent/{}", self.agent_id)
         };
         Some(url)
     }

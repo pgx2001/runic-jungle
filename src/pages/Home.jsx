@@ -53,7 +53,7 @@ export default function Home({
       />
       <main>
         <p>Welcome to Bitcoin Agent Jungle Powered by Internet Computer</p>
-        <CreateAgent wallet={wallet} />
+        <CreateAgent wallet={wallet} setWarningMessage={setWarningMessage} />
 
         <section className="agent-list">
           {agents.map(([agentId, details]) => (

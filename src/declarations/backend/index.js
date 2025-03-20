@@ -11,7 +11,7 @@ export { isMainnet } from "./../../config"
  * process.env.CANISTER_ID_<CANISTER_NAME_UPPERCASE>
  * beginning in dfx 0.15.0
  */
-export const canisterId = "asrmz-lmaaa-aaaaa-qaaeq-cai"
+export const canisterId = "fez2n-5iaaa-aaaap-qpx7q-cai"
 
 export const createActor = (canisterId, options = {}) => {
   const agent = options.agent || new HttpAgent({ ...options.agentOptions });
